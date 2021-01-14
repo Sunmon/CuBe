@@ -1,4 +1,5 @@
 import { Scene, DirectionalLight } from '../../lib/three.module.js';
+import { axesHelper } from '../common/common.js';
 
 const createScene = function () {
   return new Scene();
@@ -12,5 +13,6 @@ const scene = createScene();
 const light = createLight(0xffffff, 1);
 light.position.set(-1, 2, 4);
 scene.add(light);
+scene.add(axesHelper);
 
 export default scene;
