@@ -25,6 +25,7 @@
     "prettier": "^2.2.1"
   },
   "dependencies": {
+    "live-server": "^1.2.1",
     "three": "^0.124.0"
   }
 }
