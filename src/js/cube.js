@@ -6,7 +6,7 @@ const createBoxGeometry = function (width, height, depth) {
 };
 
 const createMeshMaterial = function (color) {
-  return new THREE.MeshBasicMaterial({ color });
+  return new THREE.MeshPhongMaterial({ color });
 };
 
 const createTestBox = function () {
@@ -16,4 +16,5 @@ const createTestBox = function () {
 };
 
 const testBox = createTestBox();
+
 export { testBox };
