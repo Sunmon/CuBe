@@ -14,8 +14,10 @@ export function init() {
 
 const render = function (camera, renderer, time) {
   time *= 0.005;
-  camera.aspect = Renderer.getRendererAspect(renderer);
-  camera.updateProjectionMatrix();
+  if (Renderer.resizeRenderToDisplaySize(renderer)) {
+    camera.aspect = Renderer.getRendererAspect(renderer);
+    camera.updateProjectionMatrix();
+  }
   testBox.rotation.y = time;
   renderer.render(scene, camera);
 };
