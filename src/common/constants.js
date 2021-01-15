@@ -1,3 +1,4 @@
 const CANVAS = document.querySelector('#canvas');
+const CUBE_SIZE = 3;
 
-export { CANVAS };
+export { CANVAS, CUBE_SIZE };

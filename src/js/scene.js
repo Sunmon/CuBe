@@ -9,10 +9,30 @@ const createLight = function (color, intensity) {
   return new DirectionalLight(color, intensity);
 };
 
-const scene = createScene();
-const light = createLight(0xffffff, 1);
-light.position.set(-1, 2, 4);
-scene.add(light);
-scene.add(axesHelper);
+const setObjectPosition = function (x, y, z, obj) {
+  obj.position.x = x;
+  obj.position.y = y;
+  obj.position.z = z;
+};
 
-export default scene;
+// namespace
+const gameScene = {};
+
+gameScene.init = function () {
+  const scene = createScene();
+  const light = createLight(0xffffff, 1);
+  light.position.set(8, 8, 8);
+  light.target.position.set(0, 0, 0);
+  scene.add(light);
+  scene.add(light.target);
+  scene.add(axesHelper);
+
+  return scene;
+};
+
+gameScene.addObject = function (x, y, z, obj, scene) {
+  setObjectPosition(x, y, z);
+  scene.add(obj);
+};
+
+export default gameScene;
