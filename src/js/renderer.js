@@ -6,29 +6,38 @@ const createRenderer = function (canvas) {
 };
 
 // namespace - 렌더러에 관한 함수들
-const Renderer = {};
-
-Renderer.init = function () {
-  const renderer = createRenderer(CANVAS);
-  return renderer;
+const CustomRenderer = {
+  renderer: null,
 };
 
-Renderer.getRendererAspect = function (renderer) {
-  const canvas = renderer.domElement;
+CustomRenderer.init = function () {
+  const renderer = createRenderer(CANVAS);
+  this.renderer = renderer;
+
+  return this;
+};
+
+CustomRenderer.getRendererAspect = function () {
+  const canvas = this.renderer.domElement;
+
   return canvas.clientWidth / canvas.clientHeight;
 };
 
-Renderer.resizeRenderToDisplaySize = function (renderer) {
-  const canvas = renderer.domElement;
+CustomRenderer.resizeRenderToDisplaySize = function () {
+  const canvas = this.renderer.domElement;
   const pixelRatio = window.devicePixelRatio;
-  const width = (canvas.clientWidth * pixelRatio) | 0;
-  const height = (canvas.clientHeight * pixelRatio) | 0;
+  const width = (canvas.clientWidth * pixelRatio) | 0; // round down
+  const height = (canvas.clientHeight * pixelRatio) | 0; // round down
   const needResize = canvas.width !== width || canvas.height !== height;
   if (needResize) {
-    renderer.setSize(width, height, false);
+    this.renderer.setSize(width, height, false);
   }
 
   return needResize;
 };
 
-export default Renderer;
+CustomRenderer.render = function (scene, camera) {
+  this.renderer.render(scene, camera);
+};
+
+export default CustomRenderer;

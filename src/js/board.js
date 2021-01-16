@@ -2,11 +2,11 @@ import * as THREE from '../../lib/three.module.js';
 import gameCube from './cube.js';
 import CustomCamera from './camera.js';
 import gameScene from './scene.js';
-import Renderer from './renderer.js';
+import CustomRenderer from './renderer.js';
 import { CUBE_SIZE } from '../common/constants.js';
 
 const camera = CustomCamera.init();
-const renderer = Renderer.init();
+const renderer = CustomRenderer.init();
 const scene = gameScene.init();
 
 // 회전값을 업데이트할 객체들
@@ -29,8 +29,9 @@ const xzScene = new THREE.Object3D(); // xz평면
 
 const render = function (camera, renderer, time) {
   time *= 0.005;
-  if (Renderer.resizeRenderToDisplaySize(renderer)) {
-    camera.aspect = Renderer.getRendererAspect(renderer);
+  if (renderer.resizeRenderToDisplaySize()) {
+    // TODO: 아래 두 함수 카메라 안 함수로 묶고, cameara init 리턴 수정
+    camera.aspect = renderer.getRendererAspect();
     camera.updateProjectionMatrix();
   }
   // TODO: 0,0,0을 중심으로 회전하도록 수정
