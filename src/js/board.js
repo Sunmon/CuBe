@@ -1,16 +1,18 @@
 import * as THREE from '../../lib/three.module.js';
 import gameCube from './cube.js';
-import Camera from './camera.js';
+import CustomCamera from './camera.js';
 import gameScene from './scene.js';
 import Renderer from './renderer.js';
 import { CUBE_SIZE } from '../common/constants.js';
 
-const camera = Camera.init();
+const camera = CustomCamera.init();
 const renderer = Renderer.init();
 const scene = gameScene.init();
 
 // 회전값을 업데이트할 객체들
 // const objects = [];
+// 회전을 관장하는 객체.
+
 const core = new THREE.Object3D(); // 가운데 코어
 const coreY = gameCube.createLine(
   // Y축으로 회전
