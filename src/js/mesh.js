@@ -2,6 +2,7 @@ import {
   BoxGeometry,
   MeshPhongMaterial,
   LineBasicMaterial,
+  LineDashedMaterial,
   PlaneBufferGeometry,
   BufferGeometry,
   Vector3,
@@ -16,8 +17,16 @@ const createBoxGeometry = function (width, height, depth) {
 
 const createMaterial = function (color) {
   // TODO: 다른 면들까지 추가하고나면, DoubleSide 삭제하기
-  return new MeshPhongMaterial({ color, side: DoubleSide });
+  return new MeshPhongMaterial({
+    color,
+    side: DoubleSide,
+    opacity: 0.5,
+    transparent: true,
+  });
 };
+
+const boxGeometry = createBoxGeometry(1, 1, 1);
+const material = createMaterial(0x857483);
 
 const createPlaneGeometry = function (width, height) {
   return new PlaneBufferGeometry(width, height);
@@ -47,12 +56,16 @@ CustomMesh.getCenterPoint = function (mesh) {
 };
 
 CustomMesh.createLine = function (from, to) {
-  const material = new LineBasicMaterial({ color: 0xbabcfd });
+  const material = new LineBasicMaterial({ color: 0xffaa00 });
   const points = [new Vector3(...from), new Vector3(...to)];
   const geometry = new BufferGeometry().setFromPoints(points);
   const line = new Line(geometry, material);
 
   return line;
+};
+
+CustomMesh.temp = function () {
+  return new Mesh(boxGeometry, material);
 };
 
 export default CustomMesh;

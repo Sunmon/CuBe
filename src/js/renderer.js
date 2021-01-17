@@ -40,4 +40,8 @@ CustomRenderer.render = function (scene, camera) {
   this.renderer.render(scene, camera);
 };
 
+CustomRenderer.getCanvas = function () {
+  return this.renderer.domElement;
+};
+
 export default CustomRenderer;
