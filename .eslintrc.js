@@ -9,5 +9,10 @@ module.exports = {
     ecmaVersion: 11,
     sourceType: 'module',
   },
-  rules: {},
+  rules: {
+    'func-names': 'off',
+    'import/no-unresolved': 'off',
+    'import/extensions': 'off',
+    /* eslint-disable import/extensions */
+  },
 };
