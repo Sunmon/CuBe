@@ -1,14 +1,14 @@
 import * as THREE from '../../lib/three.module.js';
 import Cube from './cube.js';
 import CustomCamera from './camera.js';
-import gameScene from './scene.js';
+import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
 import { CUBE_SIZE } from '../common/constants.js';
 
 const camera = CustomCamera.init();
 const renderer = CustomRenderer.init();
-const scene = gameScene.init();
+const scene = CustomScene.init();
 
 // 회전값을 업데이트할 객체들
 // const objects = [];

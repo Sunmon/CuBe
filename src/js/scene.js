@@ -16,9 +16,9 @@ const setObjectPosition = function (x, y, z, obj) {
 };
 
 // namespace
-const gameScene = {};
+const CustomScene = {};
 
-gameScene.init = function () {
+CustomScene.init = function () {
   const scene = createScene();
   const light = createLight(0xffffff, 1);
   light.position.set(8, 8, 8);
@@ -30,9 +30,9 @@ gameScene.init = function () {
   return scene;
 };
 
-gameScene.addObject = function (x, y, z, obj, scene) {
+CustomScene.addObject = function (x, y, z, obj, scene) {
   setObjectPosition(x, y, z);
   scene.add(obj);
 };
 
-export default gameScene;
+export default CustomScene;
