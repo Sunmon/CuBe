@@ -12,7 +12,8 @@ const customRenderer = CustomRenderer.init();
 const customScene = CustomScene.init();
 const core = Cube.core;
 const pickHelper = PickHelper.init();
-const initEventListners = function () {
+
+const initMouseEvents = function () {
   window.addEventListener('mousemove', e =>
     pickHelper.setPickPosition(e, customRenderer.getCanvas()),
   );
@@ -24,6 +25,31 @@ const initEventListners = function () {
     'mouseleave',
     pickHelper.clearPickPosition.bind(pickHelper),
   );
+};
+
+const initMobileEvents = function () {
+  window.addEventListener(
+    'touchstart',
+    event => {
+      event.preventDefault(); // 스크롤 이벤트 방지
+      pickHelper.setPickPosition(event.touches[0], customRenderer.getCanvas());
+    },
+    { passive: false },
+  );
+
+  window.addEventListener('touchmove', event => {
+    pickHelper.setPickPosition(event.touches[0], customRenderer.getCanvas());
+  });
+
+  window.addEventListener(
+    'touchend',
+    pickHelper.clearPickPosition.bind(pickHelper),
+  );
+};
+
+const initEventListners = function () {
+  initMouseEvents();
+  initMobileEvents();
 };
 
 const render = function (camera, renderer, time) {
