@@ -10,9 +10,8 @@ const CustomCamera = {
 };
 
 CustomCamera.init = function () {
-  const camera = createCamera(85, 2, 0.1, 8);
-  camera.up.set(0, 0, 1);
-  camera.position.set(2.5, 2.5, 2.5);
+  const camera = createCamera(75, 2, 0.1, 10);
+  camera.position.set(4.5, 4.5, 5.5);
   camera.lookAt(0, 0, 0);
   this.camera = camera;
 
