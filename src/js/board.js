@@ -31,13 +31,12 @@ const render = function (camera, renderer, time) {
   time *= 0.005;
   if (renderer.resizeRenderToDisplaySize()) {
     // TODO: 아래 두 함수 카메라 안 함수로 묶고, cameara init 리턴 수정
-    camera.aspect = renderer.getRendererAspect();
-    camera.updateProjectionMatrix();
+    camera.updateAspect(renderer.getRendererAspect());
   }
   // TODO: 0,0,0을 중심으로 회전하도록 수정
   coreZ.rotation.z = time;
   coreY.rotation.y = time;
-  renderer.render(scene, camera);
+  renderer.render(scene, camera.getCamera());
 };
 
 const animate = function (camera, renderer) {
@@ -47,7 +46,7 @@ const animate = function (camera, renderer) {
 
 // eslint-disable-next-line import/prefer-default-export
 export function init() {
-  renderer.render(scene, camera);
+  renderer.render(scene, camera.getCamera());
 
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
   const plane = gameCube.createPlane(CUBE_SIZE, CUBE_SIZE, 0x4837ef);

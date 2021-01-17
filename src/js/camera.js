@@ -16,11 +16,16 @@ CustomCamera.init = function () {
   camera.lookAt(0, 0, 0);
   this.camera = camera;
 
-  return this.camera;
+  return this;
 };
 
-CustomCamera.setAspect = function (aspect) {
+CustomCamera.updateAspect = function (aspect) {
   this.camera.aspect = aspect;
+  this.camera.updateProjectionMatrix();
+};
+
+CustomCamera.getCamera = function () {
+  return this.camera;
 };
 
 export default CustomCamera;
