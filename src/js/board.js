@@ -1,8 +1,9 @@
 import * as THREE from '../../lib/three.module.js';
-import gameCube from './cube.js';
+import Cube from './cube.js';
 import CustomCamera from './camera.js';
 import gameScene from './scene.js';
 import CustomRenderer from './renderer.js';
+import CustomMesh from './mesh.js';
 import { CUBE_SIZE } from '../common/constants.js';
 
 const camera = CustomCamera.init();
@@ -14,12 +15,12 @@ const scene = gameScene.init();
 // 회전을 관장하는 객체.
 
 const core = new THREE.Object3D(); // 가운데 코어
-const coreY = gameCube.createLine(
+const coreY = CustomMesh.createLine(
   // Y축으로 회전
   [0, -CUBE_SIZE / 2, 0],
   [0, CUBE_SIZE / 2, 0],
 ); // z축
-const coreZ = gameCube.createLine(
+const coreZ = CustomMesh.createLine(
   // Z축으로 회전
   [0, 0, -CUBE_SIZE / 2],
   [0, 0, CUBE_SIZE / 2],
@@ -49,7 +50,7 @@ export function init() {
   renderer.render(scene, camera.getCamera());
 
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
-  const plane = gameCube.createPlane(CUBE_SIZE, CUBE_SIZE, 0x4837ef);
+  const plane = CustomMesh.createPlane(CUBE_SIZE, CUBE_SIZE, 0x4837ef);
   plane.translateY(CUBE_SIZE / 2);
   plane.rotateX(-Math.PI / 2);
 
