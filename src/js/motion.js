@@ -8,6 +8,8 @@ const PickHelper = {};
 
 // 캔버스 내 정규화된 마우스의 좌표
 PickHelper.pickPosition = { x: 0, y: 0 };
+PickHelper.pickStartedPosition = { x: 0, y: 0 };
+PickHelper.motioning = false;
 
 PickHelper.init = function () {
   this.raycaster = new Raycaster();
@@ -51,12 +53,17 @@ PickHelper.setPickPosition = function (event, canvas) {
   const pos = this.getCanvasRelativePosition(event, canvas);
   this.pickPosition.x = (pos.x / canvas.width) * 2 - 1;
   this.pickPosition.y = (pos.y / canvas.height) * -2 + 1; // Y 축을 뒤집었음
+  if (event.type === 'mousedown' && !this.motioning) {
+    this.pickStartedPosition = { ...this.pickPosition };
+    this.motioning = true;
+  }
 };
 
 PickHelper.clearPickPosition = function () {
   // 터치하는 경우에 손가락을 떼면 위치 초기화하기 위함
-  this.pickPosition.x = -100000;
-  this.pickPosition.y = -100000;
+  [this.pickPosition.x, this.pickPosition.y] = [-10000, -10000];
+  [this.pickStartedPosition.x, this.pickStartedPosition.y] = [-10000, -10000];
+  this.motioning = false;
 };
 
 export { PickHelper };

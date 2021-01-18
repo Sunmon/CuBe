@@ -28,10 +28,13 @@ Cube.init = function () {
   addObject(this.core.center, this.core.yAxis);
 
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
+  // 그냥 line 벡터 알아내서 add한다음에 lookAt하면된다
   const plane = this.createPlane(0x57838f);
   plane.translateY(CUBE_SIZE / 2);
   plane.rotateX(-Math.PI / 2);
   addObject(this.core.yAxis, plane);
+
+  return this;
 };
 
 export default Cube;

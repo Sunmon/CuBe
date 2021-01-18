@@ -10,13 +10,36 @@ import { PickHelper } from './motion.js';
 const customCamera = CustomCamera.init();
 const customRenderer = CustomRenderer.init();
 const customScene = CustomScene.init();
-const core = Cube.core;
+const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
-const initMouseEvents = function () {
-  window.addEventListener('mousemove', e =>
-    pickHelper.setPickPosition(e, customRenderer.getCanvas()),
+let lastCubeQuaternion = new THREE.Quaternion();
+
+const testRotationX = function (start, current) {
+  const direction = new THREE.Vector3(
+    start.x - current.x,
+    start.y - current.y,
+    0,
+  ).normalize();
+  const ratio = Math.sign(direction.x);
+
+  // .NOTE: 방향 작은걸로할때 아래 함수 쓰면 되겠따
+  // cube.core.center.setRotationFromAxisAngle(direction, 0.1);
+
+  const quat = new THREE.Quaternion();
+  quat.setFromAxisAngle(direction, ratio * (start.x - current.x));
+  cube.core.center.setRotationFromQuaternion(
+    quat.multiply(lastCubeQuaternion).normalize(),
   );
+};
+
+const initMouseEvents = function () {
+  window.addEventListener('mousemove', e => {
+    pickHelper.setPickPosition(e, customRenderer.getCanvas());
+    if (pickHelper.motioning) {
+      testRotationX(pickHelper.pickStartedPosition, pickHelper.pickPosition);
+    }
+  });
   window.addEventListener(
     'mouseout',
     pickHelper.clearPickPosition.bind(pickHelper),
@@ -25,6 +48,14 @@ const initMouseEvents = function () {
     'mouseleave',
     pickHelper.clearPickPosition.bind(pickHelper),
   );
+  window.addEventListener('mousedown', e => {
+    pickHelper.setPickPosition(e, customRenderer.getCanvas());
+    lastCubeQuaternion.setFromRotationMatrix(cube.core.center.matrix);
+  });
+  window.addEventListener('mouseup', () => {
+    pickHelper.clearPickPosition();
+    lastCubeQuaternion.setFromRotationMatrix(cube.core.center.matrix);
+  });
 };
 
 const initMobileEvents = function () {
@@ -81,21 +112,20 @@ const initTransformControls = function () {
   );
   control.setMode('rotate');
   control.addEventListener('dragging-changed', function (event) {});
-  control.attach(core.center);
+  control.attach(cube.core.center);
 
   return control;
 };
 
 // eslint-disable-next-line import/prefer-default-export
 export function init() {
-  Cube.init();
-  customScene.add(core.center);
+  customScene.add(cube.core.center);
   initEventListners();
 
   const tempBox = CustomMesh.temp();
   const tempPlane = Cube.createPlane(0x987653);
   customScene.add(tempBox);
   tempPlane.rotateX(Math.PI / 8);
-  core.center.add(tempPlane);
+  cube.core.center.add(tempPlane);
   animate(customCamera, customRenderer);
 }
