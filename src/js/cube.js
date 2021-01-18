@@ -8,7 +8,10 @@ const addObject = function (target, obj) {
 };
 
 // namespace
-const Cube = {};
+const Cube = {
+  lastCubeQuaternion: new THREE.Quaternion(),
+  rotateDirection: '', // x,y (화면 가로, 화면 세로)
+};
 
 Cube.core = {
   center: new THREE.Object3D(),
@@ -35,6 +38,45 @@ Cube.init = function () {
   addObject(this.core.yAxis, plane);
 
   return this;
+};
+
+Cube.toggleRotateDirection = function (delta = {}, THRESHOLD = 0.1) {
+  if (this.rotateDirection) {
+    this.rotateDirection = '';
+  } else if (Math.abs(delta.x) > THRESHOLD) {
+    this.rotateDirection = 'x';
+  } else if (Math.abs(delta.y) > THRESHOLD) {
+    this.rotateDirection = 'y';
+  }
+};
+
+Cube.rotateCore = function (delta, value) {
+  const temp = new THREE.Quaternion();
+  temp.setFromAxisAngle(delta, value);
+  this.core.center.setRotationFromQuaternion(
+    temp.multiply(this.lastCubeQuaternion).normalize(),
+  );
+};
+
+Cube.rotateBody = function (start, current) {
+  const delta = new THREE.Vector3(start.x - current.x, start.y - current.y);
+  const direction = this.rotateDirection;
+  if (!direction) {
+    this.toggleRotateDirection(delta);
+  }
+
+  const weight = 5; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
+  if (direction) {
+    delta[direction] *= weight;
+    delta.normalize();
+    const sign = Math.sign(delta[direction]);
+    const value = sign * (start[direction] - current[direction]);
+    this.rotateCore(delta, value);
+  }
+};
+
+Cube.setLastCubeQuaternion = function (quaternion) {
+  this.lastCubeQuaternion.setFromRotationMatrix(quaternion);
 };
 
 export default Cube;

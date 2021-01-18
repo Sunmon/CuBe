@@ -13,31 +13,11 @@ const customScene = CustomScene.init();
 const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
-let lastCubeQuaternion = new THREE.Quaternion();
-
-const testRotationX = function (start, current) {
-  const direction = new THREE.Vector3(
-    start.x - current.x,
-    start.y - current.y,
-    0,
-  ).normalize();
-  const ratio = Math.sign(direction.x);
-
-  // .NOTE: 방향 작은걸로할때 아래 함수 쓰면 되겠따
-  // cube.core.center.setRotationFromAxisAngle(direction, 0.1);
-
-  const quat = new THREE.Quaternion();
-  quat.setFromAxisAngle(direction, ratio * (start.x - current.x));
-  cube.core.center.setRotationFromQuaternion(
-    quat.multiply(lastCubeQuaternion).normalize(),
-  );
-};
-
 const initMouseEvents = function () {
   window.addEventListener('mousemove', e => {
     pickHelper.setPickPosition(e, customRenderer.getCanvas());
     if (pickHelper.motioning) {
-      testRotationX(pickHelper.pickStartedPosition, pickHelper.pickPosition);
+      cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
     }
   });
   window.addEventListener(
@@ -50,11 +30,12 @@ const initMouseEvents = function () {
   );
   window.addEventListener('mousedown', e => {
     pickHelper.setPickPosition(e, customRenderer.getCanvas());
-    lastCubeQuaternion.setFromRotationMatrix(cube.core.center.matrix);
+    cube.setLastCubeQuaternion(cube.core.center.matrix);
   });
   window.addEventListener('mouseup', () => {
     pickHelper.clearPickPosition();
-    lastCubeQuaternion.setFromRotationMatrix(cube.core.center.matrix);
+    cube.setLastCubeQuaternion(cube.core.center.matrix);
+    cube.toggleRotateDirection();
   });
 };
 
@@ -95,8 +76,6 @@ const render = function (camera, renderer, time) {
     time,
   );
   // TODO: 0,0,0을 중심으로 회전하도록 수정
-  // core.center.rotation.z = time;
-  // core.yAxis.rotation.y = time;
   renderer.render(customScene, camera.getCamera());
 };
 
