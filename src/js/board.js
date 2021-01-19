@@ -13,6 +13,7 @@ const customScene = CustomScene.init();
 const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
+const tempDest = new THREE.Quaternion();
 const initMouseEvents = function () {
   window.addEventListener('mousemove', e => {
     pickHelper.setPickPosition(e, customRenderer.getCanvas());
@@ -30,12 +31,27 @@ const initMouseEvents = function () {
   );
   window.addEventListener('mousedown', e => {
     pickHelper.setPickPosition(e, customRenderer.getCanvas());
-    cube.setLastCubeQuaternion(cube.core.center.matrix);
+    // cube.setLastCubeQuaternion(cube.core.center.matrix);
   });
   window.addEventListener('mouseup', () => {
     pickHelper.clearPickPosition();
-    cube.setLastCubeQuaternion(cube.core.center.matrix);
-    cube.toggleRotateDirection();
+    // TODO: slerp
+    const origin = cube.lastCubeQuaternion.clone();
+    const cur = cube.core.center.quaternion;
+    // TODO: invert말고 90도 돌린거 찾아내기
+    const invert = origin.clone().conjugate(); // FIXME: invert가 이상하다. 180도 돌리는게 이상함
+    // const dest = getCloserQuaternion(cur, origin, invert);
+    // 일단 아래 식이 동작하는지 확인후 dest 위 코드 쓰기
+    if (origin.angleTo(cur) > Math.PI / 4) {
+      cur.copy(invert);
+    } else {
+      cur.copy(origin);
+    }
+
+    // 새로운 좌표 저장
+    // cube.setLastCubeQuaternion(cube.core.center.quaternion);
+    cube.setLastCubeQuaternion(cur);
+    cube.resetRotateDirection();
   });
 };
 
@@ -77,13 +93,12 @@ const render = function (camera, renderer, time) {
     time,
   );
   // TODO: 0,0,0을 중심으로 회전하도록 수정
-  slerpTest(tempBox, time);
+  // slerpTest(tempBox, time);
 
   renderer.render(customScene, camera.getCamera());
 };
 const animate = function (camera, renderer) {
   const time = requestAnimationFrame(() => animate(camera, renderer));
-
   render(camera, renderer, time);
 };
 
@@ -97,6 +112,19 @@ const initTransformControls = function () {
   control.attach(cube.core.center);
 
   return control;
+};
+
+const getCloserQuaternion = function (start, destination1, destination2) {
+  const angle = (start, dest) => Math.abs(start.angleTo(dest));
+  return angle(start, destination1) < angle(start, destination2)
+    ? destination1
+    : destination2;
+};
+
+const slerpToCloser = function (start, destination1, destination2, t) {
+  t = (t + 1) % 1;
+  const dest = getCloserQuaternion(start, destination1, destination2);
+  start.quaternion.slerp(dest, t);
 };
 
 // slerp 예제코드
@@ -124,12 +152,6 @@ const slerpTest = function (box, time) {
   t = (t + 0.01) % 1;
   // console.log(t);
   THREE.Quaternion.slerp(startQuaternion, endQuaternion, box.quaternion, t);
-  // box.quaternion.slerp(endQuaternion, t);
-
-  // box.quaternion.slerp
-  // THREE.Quaternion.slerp(cube.core.center.quaternion, endQuaternion, qm, 0.5);
-  // cube.core.center.quaternion = qm;
-  // cube.core.center.quaternion.slerp(endQuaternion, 0.5);
 };
 
 // eslint-disable-next-line import/prefer-default-export
@@ -142,5 +164,11 @@ export function init() {
   customScene.add(tempBox);
   tempPlane.rotateX(Math.PI / 8);
   cube.core.center.add(tempPlane);
+
+  // HACK: v 설정 안해주면 쿼터니온이 (0,0,0,0)이 되어버리기때문에
+  // invert를 구할 수 없다. (invert 식을 바꾸면 될수도있음)
+  const v = new THREE.Vector3(0, 1, 0);
+  cube.core.center.quaternion.setFromAxisAngle(v, Math.PI / 4);
+  cube.setLastCubeQuaternion(cube.core.center.quaternion);
   animate(customCamera, customRenderer);
 }

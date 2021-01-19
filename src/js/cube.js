@@ -40,14 +40,19 @@ Cube.init = function () {
   return this;
 };
 
-Cube.toggleRotateDirection = function (delta = {}, THRESHOLD = 0.1) {
-  if (this.rotateDirection) {
-    this.rotateDirection = '';
-  } else if (Math.abs(delta.x) > THRESHOLD) {
+// TODO: 큐브 방향대로 xy대신 다른값으로 바꾸기. RU RL FU 이런걸로...
+Cube.updateRotateDirection = function (delta = {}, THRESHOLD = 0.1) {
+  if (Math.abs(delta.x) > THRESHOLD) {
     this.rotateDirection = 'x';
   } else if (Math.abs(delta.y) > THRESHOLD) {
     this.rotateDirection = 'y';
   }
+
+  return this.rotateDirection;
+};
+
+Cube.resetRotateDirection = function () {
+  this.rotateDirection = '';
 };
 
 Cube.rotateCore = function (delta, value) {
@@ -60,13 +65,9 @@ Cube.rotateCore = function (delta, value) {
 
 Cube.rotateBody = function (start, current) {
   const delta = new THREE.Vector3(start.x - current.x, start.y - current.y);
-  const direction = this.rotateDirection;
-  if (!direction) {
-    this.toggleRotateDirection(delta);
-  }
-
-  const weight = 5; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
-  if (direction) {
+  if (this.rotateDirection || this.updateRotateDirection(delta)) {
+    const direction = this.rotateDirection;
+    const weight = 5; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
     delta[direction] *= weight;
     delta.normalize();
     const sign = Math.sign(delta[direction]);
@@ -76,7 +77,8 @@ Cube.rotateBody = function (start, current) {
 };
 
 Cube.setLastCubeQuaternion = function (quaternion) {
-  this.lastCubeQuaternion.setFromRotationMatrix(quaternion);
+  // this.lastCubeQuaternion.setFromRotationMatrix(quaternion);
+  this.lastCubeQuaternion.copy(quaternion);
 };
 
 export default Cube;
