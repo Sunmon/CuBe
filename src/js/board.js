@@ -6,6 +6,7 @@ import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
 import { PickHelper } from './motion.js';
+import { axesHelper } from '../common/common.js';
 
 const customCamera = CustomCamera.init();
 const customRenderer = CustomRenderer.init();
@@ -14,6 +15,21 @@ const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
 const tempDest = new THREE.Quaternion();
+
+let slerpA = new THREE.Quaternion();
+let slerpB = new THREE.Quaternion();
+let slerpEnable = false;
+
+const slerpTest2 = function (origin, dest, time) {
+  let t = time;
+  t = (t + 0.01) % 1;
+  console.log(`t, time : ${t}, ${time % 1}`);
+  origin.slerp(dest, t);
+  if (origin.angleTo(dest) === 0) {
+    slerpEnable = false;
+  }
+};
+
 const initMouseEvents = function () {
   window.addEventListener('mousemove', e => {
     pickHelper.setPickPosition(e, customRenderer.getCanvas());
@@ -36,21 +52,31 @@ const initMouseEvents = function () {
   window.addEventListener('mouseup', () => {
     pickHelper.clearPickPosition();
     // TODO: slerp
-    const origin = cube.lastCubeQuaternion.clone();
+    const origin = cube.lastCubeQuaternion;
     const cur = cube.core.center.quaternion;
-    // TODO: invert말고 90도 돌린거 찾아내기
-    const invert = origin.clone().conjugate(); // FIXME: invert가 이상하다. 180도 돌리는게 이상함
-    // const dest = getCloserQuaternion(cur, origin, invert);
-    // 일단 아래 식이 동작하는지 확인후 dest 위 코드 쓰기
-    if (origin.angleTo(cur) > Math.PI / 4) {
-      cur.copy(invert);
-    } else {
-      cur.copy(origin);
-    }
+    // FIXME: diff 로 구하는 로직을 다시 생각해봐야할듯
+    const diff = origin.clone().multiply(cur.clone().invert());
 
-    // 새로운 좌표 저장
-    // cube.setLastCubeQuaternion(cube.core.center.quaternion);
-    cube.setLastCubeQuaternion(cur);
+    // TODO: 큐브 현재 회전방향으로 회전 쿼터니언 알아내기
+    const { rotateDirection } = cube;
+
+    // 가까운 곳 알아내기
+    const dir = getClosestDirection(
+      diff,
+      origin,
+      new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(1, 0, 0),
+        Math.PI / 2,
+      ),
+    );
+    const dest = dir.equals(origin) ? origin : origin.clone().multiply(dir);
+
+    slerpA = cur;
+    slerpB = dest;
+    slerpEnable = true;
+
+    // 큐브 마지막 상태 저장하기
+    cube.setLastCubeQuaternion(dest);
     cube.resetRotateDirection();
   });
 };
@@ -92,9 +118,10 @@ const render = function (camera, renderer, time) {
     camera.getCamera(),
     time,
   );
-  // TODO: 0,0,0을 중심으로 회전하도록 수정
-  // slerpTest(tempBox, time);
-
+  // TODO: 마우스를 놓으면 slerp 애니메이션 이뤄지도록
+  if (slerpEnable) {
+    slerpTest2(slerpA, slerpB, time);
+  }
   renderer.render(customScene, camera.getCamera());
 };
 const animate = function (camera, renderer) {
@@ -121,36 +148,35 @@ const getCloserQuaternion = function (start, destination1, destination2) {
     : destination2;
 };
 
+// TODO: 혹은 cur, origin 비교해서 PI/2 넘으면 더하고, 아니면 원래대로 돌릴수도 있지
+// const over45 = function(origin, cur) {
+//
+// }
+
+const getClosestDirection = function (origin, ...direction) {
+  console.log(direction);
+  return direction.reduce((pre, cur) => {
+    return origin.angleTo(pre) < origin.angleTo(cur) ? pre : cur;
+  });
+};
+
 const slerpToCloser = function (start, destination1, destination2, t) {
   t = (t + 1) % 1;
   const dest = getCloserQuaternion(start, destination1, destination2);
   start.quaternion.slerp(dest, t);
 };
 
-// slerp 예제코드
-// const startQuaternion = new THREE.Quaternion().set(0, 0, 0, 1).normalize();
-// const endQuaternion = new THREE.Quaternion().set(1, 1, 1, 1).normalize();
-
 // TODO: slerp test
 const slerpTest = function (box, time) {
-  // const endQuaternion = new THREE.Quaternion();
-  // endQuaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI);
-  // const qm = new THREE.Quaternion();
   const startQuaternion = new THREE.Quaternion()
     .copy(box.quaternion)
     .normalize();
-  // const endQuaternion = new THREE.Quaternion().set(3, 2, 1, 1).normalize();
   const endQuaternion = new THREE.Quaternion()
     .setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2)
     .normalize();
 
-  // // slerp 예제코드
-  // const startQuaternion = new THREE.Quaternion().set(0, 0, 0, 1).normalize();
-  // const endQuaternion = new THREE.Quaternion().set(1, 1, 1, 1).normalize();
   let t = time;
-
   t = (t + 0.01) % 1;
-  // console.log(t);
   THREE.Quaternion.slerp(startQuaternion, endQuaternion, box.quaternion, t);
 };
 
@@ -160,15 +186,10 @@ export function init() {
   initEventListners();
 
   tempBox = CustomMesh.temp();
-  const tempPlane = Cube.createPlane(0x987653);
+  // const tempPlane = Cube.createPlane(0x987653);
   customScene.add(tempBox);
-  tempPlane.rotateX(Math.PI / 8);
-  cube.core.center.add(tempPlane);
 
-  // HACK: v 설정 안해주면 쿼터니온이 (0,0,0,0)이 되어버리기때문에
-  // invert를 구할 수 없다. (invert 식을 바꾸면 될수도있음)
-  const v = new THREE.Vector3(0, 1, 0);
-  cube.core.center.quaternion.setFromAxisAngle(v, Math.PI / 4);
-  cube.setLastCubeQuaternion(cube.core.center.quaternion);
+  cube.core.center.add(axesHelper(1));
+
   animate(customCamera, customRenderer);
 }

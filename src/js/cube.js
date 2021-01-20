@@ -26,8 +26,8 @@ Cube.createPlane = function (color) {
 
 // Z -> X -> Y 순으로 회전 (오일러 회전과 순서를 맞춤)
 Cube.init = function () {
-  addObject(this.core.center, this.core.zAxis);
-  addObject(this.core.center, this.core.xAxis);
+  // addObject(this.core.center, this.core.zAxis);
+  // addObject(this.core.center, this.core.xAxis);
   addObject(this.core.center, this.core.yAxis);
 
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
@@ -58,13 +58,14 @@ Cube.resetRotateDirection = function () {
 Cube.rotateCore = function (delta, value) {
   const temp = new THREE.Quaternion();
   temp.setFromAxisAngle(delta, value);
+  // TODO: 기본 xyz말고 처음에 설정한 벡터를 기준으로 돌려야 함
   this.core.center.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
 };
 
 Cube.rotateBody = function (start, current) {
-  const delta = new THREE.Vector3(start.x - current.x, start.y - current.y);
+  const delta = new THREE.Vector3(start.x - current.x, start.y - current.y, 0);
   if (this.rotateDirection || this.updateRotateDirection(delta)) {
     const direction = this.rotateDirection;
     const weight = 5; // 마우스를 이동하는 방향으로 큐브를 돌리기위함

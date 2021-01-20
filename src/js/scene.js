@@ -25,7 +25,7 @@ CustomScene.init = function () {
   light.target.position.set(0, 0, 0);
   scene.add(light);
   scene.add(light.target);
-  scene.add(axesHelper);
+  scene.add(axesHelper(3));
 
   return scene;
 };
