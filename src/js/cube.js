@@ -10,7 +10,7 @@ const addObject = function (target, obj) {
 // namespace
 const Cube = {
   lastCubeQuaternion: new THREE.Quaternion(),
-  rotateDirection: '', // x,y (화면 가로, 화면 세로)
+  mouseDirection: '', // x,y (화면 가로, 화면 세로)
 };
 
 Cube.core = {
@@ -41,18 +41,19 @@ Cube.init = function () {
 };
 
 // TODO: 큐브 방향대로 xy대신 다른값으로 바꾸기. RU RL FU 이런걸로...
-Cube.updateRotateDirection = function (delta = {}, THRESHOLD = 0.1) {
+// TODO: ROtateDIrection 대신 mouseDirection이라고 해야겠다
+Cube.updateMouseDirection = function (delta = {}, THRESHOLD = 0.1) {
   if (Math.abs(delta.x) > THRESHOLD) {
-    this.rotateDirection = 'x';
+    this.mouseDirection = 'x';
   } else if (Math.abs(delta.y) > THRESHOLD) {
-    this.rotateDirection = 'y';
+    this.mouseDirection = 'y';
   }
 
-  return this.rotateDirection;
+  return this.mouseDirection;
 };
 
-Cube.resetRotateDirection = function () {
-  this.rotateDirection = '';
+Cube.resetMouseDirection = function () {
+  this.mouseDirection = '';
 };
 
 Cube.rotateCore = function (delta, value) {
@@ -65,9 +66,10 @@ Cube.rotateCore = function (delta, value) {
 };
 
 Cube.rotateBody = function (start, current) {
+  // TODO: 축의 방향 바꾸기
   const delta = new THREE.Vector3(start.x - current.x, start.y - current.y, 0);
-  if (this.rotateDirection || this.updateRotateDirection(delta)) {
-    const direction = this.rotateDirection;
+  if (this.mouseDirection || this.updateMouseDirection(delta)) {
+    const direction = this.mouseDirection;
     const weight = 5; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
     delta[direction] *= weight;
     delta.normalize();

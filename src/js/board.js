@@ -55,29 +55,20 @@ const initMouseEvents = function () {
     const origin = cube.lastCubeQuaternion;
     const cur = cube.core.center.quaternion;
     // FIXME: diff 로 구하는 로직을 다시 생각해봐야할듯
-    const diff = origin.clone().multiply(cur.clone().invert());
+    const diff = new THREE.Quaternion();
+    diff.multiplyQuaternions(origin, cur.clone().invert());
+    // const diff = origin.clone().multiply(cur.clone().invert());
 
     // TODO: 큐브 현재 회전방향으로 회전 쿼터니언 알아내기
     const { rotateDirection } = cube;
-
-    // 가까운 곳 알아내기
-    const dir = getClosestDirection(
-      diff,
-      origin,
-      new THREE.Quaternion().setFromAxisAngle(
-        new THREE.Vector3(1, 0, 0),
-        Math.PI / 2,
-      ),
-    );
-    const dest = dir.equals(origin) ? origin : origin.clone().multiply(dir);
 
     slerpA = cur;
     slerpB = dest;
     slerpEnable = true;
 
     // 큐브 마지막 상태 저장하기
-    cube.setLastCubeQuaternion(dest);
-    cube.resetRotateDirection();
+    cube.setLastCubeQuaternion(cur);
+    cube.resetMouseDirection();
   });
 };
 
@@ -119,9 +110,9 @@ const render = function (camera, renderer, time) {
     time,
   );
   // TODO: 마우스를 놓으면 slerp 애니메이션 이뤄지도록
-  if (slerpEnable) {
-    slerpTest2(slerpA, slerpB, time);
-  }
+  // if (slerpEnable) {
+  //   slerpTest2(slerpA, slerpB, time);
+  // }
   renderer.render(customScene, camera.getCamera());
 };
 const animate = function (camera, renderer) {
