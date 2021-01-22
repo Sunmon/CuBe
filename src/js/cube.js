@@ -56,10 +56,26 @@ Cube.resetMouseDirection = function () {
   this.mouseDirection = '';
 };
 
-Cube.rotateCore = function (delta, value) {
+Cube.rotateCore = function (start, delta, value) {
   const temp = new THREE.Quaternion();
-  temp.setFromAxisAngle(delta, value);
-  // TODO: 기본 xyz말고 처음에 설정한 벡터를 기준으로 돌려야 함
+
+  if (this.mouseDirection === 'x') {
+    if (start.y > 0) {
+      // (x,y,z) -> (y,x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+    } else {
+      // (x,y,z) -> (y,-x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
+    }
+  } else if (this.mouseDirection === 'y') {
+    // (x,y,z) -> (z, x, -y)
+    if (start.x > 0) {
+      temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
+    } else {
+      // (x,y,z) -> (y,x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+    }
+  }
   this.core.center.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
@@ -70,12 +86,12 @@ Cube.rotateBody = function (start, current) {
   const delta = new THREE.Vector3(start.x - current.x, start.y - current.y, 0);
   if (this.mouseDirection || this.updateMouseDirection(delta)) {
     const direction = this.mouseDirection;
-    const weight = 5; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
+    const weight = 10; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
     delta[direction] *= weight;
     delta.normalize();
     const sign = Math.sign(delta[direction]);
     const value = sign * (start[direction] - current[direction]);
-    this.rotateCore(delta, value);
+    this.rotateCore(start, delta, value);
   }
 };
 

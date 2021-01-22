@@ -62,9 +62,9 @@ const initMouseEvents = function () {
     // TODO: 큐브 현재 회전방향으로 회전 쿼터니언 알아내기
     const { rotateDirection } = cube;
 
-    slerpA = cur;
-    slerpB = dest;
-    slerpEnable = true;
+    // slerpA = cur;
+    // slerpB = dest;
+    // slerpEnable = true;
 
     // 큐브 마지막 상태 저장하기
     cube.setLastCubeQuaternion(cur);
