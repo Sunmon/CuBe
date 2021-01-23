@@ -14,18 +14,15 @@ const customScene = CustomScene.init();
 const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
-const tempDest = new THREE.Quaternion();
-
 let slerpA = new THREE.Quaternion();
 let slerpB = new THREE.Quaternion();
 let slerpEnable = false;
 
-const slerpTest2 = function (origin, dest, time) {
+const slerpCube = function (cur, dest, time) {
   let t = time;
   t = (t + 0.01) % 1;
-  console.log(`t, time : ${t}, ${time % 1}`);
-  origin.slerp(dest, t);
-  if (origin.angleTo(dest) === 0) {
+  cur.slerp(dest, t);
+  if (cur.angleTo(dest) === 0) {
     slerpEnable = false;
   }
 };
@@ -47,27 +44,38 @@ const initMouseEvents = function () {
   );
   window.addEventListener('mousedown', e => {
     pickHelper.setPickPosition(e, customRenderer.getCanvas());
-    // cube.setLastCubeQuaternion(cube.core.center.matrix);
+    cube.core.center.quaternion.copy(cube.lastCubeQuaternion);
+    slerpEnable = false;
   });
   window.addEventListener('mouseup', () => {
+    const start = { ...pickHelper.pickStartedPosition };
+    const end = { ...pickHelper.pickPosition };
     pickHelper.clearPickPosition();
-    // TODO: slerp
     const origin = cube.lastCubeQuaternion;
     const cur = cube.core.center.quaternion;
-    // FIXME: diff 로 구하는 로직을 다시 생각해봐야할듯
+    // 회전 방향 설정
+    const dir = [
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(0, 1, 0),
+    ];
     const diff = new THREE.Quaternion();
-    diff.multiplyQuaternions(origin, cur.clone().invert());
-    // const diff = origin.clone().multiply(cur.clone().invert());
-
-    // TODO: 큐브 현재 회전방향으로 회전 쿼터니언 알아내기
-    const { rotateDirection } = cube;
-
-    // slerpA = cur;
-    // slerpB = dest;
-    // slerpEnable = true;
-
-    // 큐브 마지막 상태 저장하기
-    cube.setLastCubeQuaternion(cur);
+    const [other, k] = cube.mouseDirection === 'x' ? ['y', 1] : ['x', 3];
+    const [from, to] = start[other] > 0 ? [k, 2] : [3 - k, 1];
+    const invert = start[cube.mouseDirection] < end[cube.mouseDirection];
+    diff.setFromUnitVectors(dir[from], dir[to]);
+    if (invert) diff.invert();
+    // TODO: 애니메이션 Tween으로 넣기
+    const dest = new THREE.Quaternion();
+    dest.multiplyQuaternions(diff, origin);
+    if (cur.angleTo(origin) < cur.angleTo(dest)) {
+      dest.copy(origin);
+    }
+    slerpA = cur;
+    slerpB = dest;
+    slerpEnable = true;
+    cube.setLastCubeQuaternion(dest);
     cube.resetMouseDirection();
   });
 };
@@ -110,9 +118,9 @@ const render = function (camera, renderer, time) {
     time,
   );
   // TODO: 마우스를 놓으면 slerp 애니메이션 이뤄지도록
-  // if (slerpEnable) {
-  //   slerpTest2(slerpA, slerpB, time);
-  // }
+  if (slerpEnable) {
+    slerpCube(slerpA, slerpB, time);
+  }
   renderer.render(customScene, camera.getCamera());
 };
 const animate = function (camera, renderer) {
@@ -139,11 +147,6 @@ const getCloserQuaternion = function (start, destination1, destination2) {
     : destination2;
 };
 
-// TODO: 혹은 cur, origin 비교해서 PI/2 넘으면 더하고, 아니면 원래대로 돌릴수도 있지
-// const over45 = function(origin, cur) {
-//
-// }
-
 const getClosestDirection = function (origin, ...direction) {
   console.log(direction);
   return direction.reduce((pre, cur) => {
@@ -155,20 +158,6 @@ const slerpToCloser = function (start, destination1, destination2, t) {
   t = (t + 1) % 1;
   const dest = getCloserQuaternion(start, destination1, destination2);
   start.quaternion.slerp(dest, t);
-};
-
-// TODO: slerp test
-const slerpTest = function (box, time) {
-  const startQuaternion = new THREE.Quaternion()
-    .copy(box.quaternion)
-    .normalize();
-  const endQuaternion = new THREE.Quaternion()
-    .setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2)
-    .normalize();
-
-  let t = time;
-  t = (t + 0.01) % 1;
-  THREE.Quaternion.slerp(startQuaternion, endQuaternion, box.quaternion, t);
 };
 
 // eslint-disable-next-line import/prefer-default-export
