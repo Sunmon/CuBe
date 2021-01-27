@@ -1,5 +1,6 @@
 // import * as THREE from 'three'; // webpack으로 모듈 사용시
 import CustomMesh from './mesh.js';
+import * as TWEEN from '../../lib/tween.esm.js';
 import * as THREE from '../../lib/three.module.js';
 import { CUBE_SIZE } from '../common/constants.js';
 
@@ -7,10 +8,25 @@ const addObject = function (target, obj) {
   target.add(obj);
 };
 
+const getCloserDirection = function (object, origin, direction) {
+  const dest = new THREE.Quaternion().multiplyQuaternions(direction, origin);
+  if (object.quaternion.angleTo(origin) < object.quaternion.angleTo(dest)) {
+    dest.copy(origin);
+  }
+
+  return dest;
+};
+
+const slerpObject = function (object, destination) {
+  new TWEEN.Tween(object.quaternion).to(destination, 100).start();
+};
+
 // namespace
 const Cube = {
   lastCubeQuaternion: new THREE.Quaternion(),
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
+  rotateStart: {},
+  rotateInverse: '',
 };
 
 Cube.core = {
@@ -40,8 +56,6 @@ Cube.init = function () {
   return this;
 };
 
-// TODO: 큐브 방향대로 xy대신 다른값으로 바꾸기. RU RL FU 이런걸로...
-// TODO: ROtateDIrection 대신 mouseDirection이라고 해야겠다
 Cube.updateMouseDirection = function (delta = {}, THRESHOLD = 0.1) {
   if (Math.abs(delta.x) > THRESHOLD) {
     this.mouseDirection = 'x';
@@ -58,7 +72,6 @@ Cube.resetMouseDirection = function () {
 
 Cube.rotateCore = function (start, delta, value) {
   const temp = new THREE.Quaternion();
-
   if (this.mouseDirection === 'x') {
     if (start.y > 0) {
       // (x,y,z) -> (y,x,z)
@@ -84,6 +97,7 @@ Cube.rotateCore = function (start, delta, value) {
 Cube.rotateBody = function (start, current) {
   // TODO: 축의 방향 바꾸기
   const delta = new THREE.Vector3(start.x - current.x, start.y - current.y, 0);
+  this.rotateStart = start;
   if (this.mouseDirection || this.updateMouseDirection(delta)) {
     const direction = this.mouseDirection;
     const weight = 10; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
@@ -96,8 +110,39 @@ Cube.rotateBody = function (start, current) {
 };
 
 Cube.setLastCubeQuaternion = function (quaternion) {
-  // this.lastCubeQuaternion.setFromRotationMatrix(quaternion);
   this.lastCubeQuaternion.copy(quaternion);
+};
+
+Cube.getUserDirection = function (clickStart, clickEnd) {
+  const units = [
+    new THREE.Vector3(0, 1, 0),
+    new THREE.Vector3(0, 0, 1),
+    new THREE.Vector3(1, 0, 0),
+    new THREE.Vector3(0, 1, 0),
+  ];
+  const [other, k] = this.mouseDirection === 'x' ? ['y', 1] : ['x', 3];
+  const [from, to] = clickStart[other] > 0 ? [k, 2] : [3 - k, 1]; // 유닛벡터 선택
+  const direction = new THREE.Quaternion().setFromUnitVectors(
+    units[from],
+    units[to],
+  );
+  const invert =
+    clickStart[this.mouseDirection] < clickEnd[this.mouseDirection];
+  if (invert) direction.invert();
+
+  return direction;
+};
+
+Cube.slerp = function (clickStart, clickEnd) {
+  const userDirection = this.getUserDirection(clickStart, clickEnd);
+  const destination = getCloserDirection(
+    this.core.center,
+    this.lastCubeQuaternion,
+    userDirection,
+  );
+
+  slerpObject(this.core.center, destination);
+  this.setLastCubeQuaternion(destination);
 };
 
 export default Cube;

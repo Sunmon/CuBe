@@ -53,10 +53,16 @@ PickHelper.setPickPosition = function (event, canvas) {
   const pos = this.getCanvasRelativePosition(event, canvas);
   this.pickPosition.x = (pos.x / canvas.width) * 2 - 1;
   this.pickPosition.y = (pos.y / canvas.height) * -2 + 1; // Y 축을 뒤집었음
-  if (event.type === 'mousedown' && !this.motioning) {
-    this.pickStartedPosition = { ...this.pickPosition };
-    this.motioning = true;
+
+  const clicked = event.type === 'mousedown' || event instanceof Touch;
+  if (clicked && !this.motioning) {
+    this.setStartedPosition(this.pickPosition);
   }
+};
+
+PickHelper.setStartedPosition = function (pos) {
+  this.pickStartedPosition = { ...pos };
+  this.motioning = true;
 };
 
 PickHelper.clearPickPosition = function () {
