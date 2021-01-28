@@ -40,6 +40,44 @@ Cube.createPlane = function (color) {
   return CustomMesh.createPlane(CUBE_SIZE, CUBE_SIZE, color);
 };
 
+Cube.createCubic = function (color) {
+  return CustomMesh.createBox(
+    CUBE_SIZE / 3,
+    CUBE_SIZE / 3,
+    CUBE_SIZE / 3,
+    color,
+  );
+};
+
+Cube.createCubicsArray = function () {
+  return [...Array(3)].map(() =>
+    [...Array(3)].map(() =>
+      [...Array(3)].map(() => this.createCubic(0xffffff)),
+    ),
+  );
+};
+
+Cube.setCubicsPosition = function (cubics) {
+  const xyz = [-CUBE_SIZE / 3, 0, CUBE_SIZE / 3];
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      for (let k = 0; k < 3; k++) {
+        cubics[i][j][k].position.set(xyz[i], xyz[j], xyz[k]);
+      }
+    }
+  }
+};
+
+Cube.addCubicsToCore = function (cubics) {
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      for (let k = 0; k < 3; k++) {
+        this.core.center.add(cubics[i][j][k]);
+      }
+    }
+  }
+};
+
 // Z -> X -> Y 순으로 회전 (오일러 회전과 순서를 맞춤)
 Cube.init = function () {
   // addObject(this.core.center, this.core.zAxis);
@@ -52,6 +90,11 @@ Cube.init = function () {
   plane.translateY(CUBE_SIZE / 2);
   plane.rotateX(-Math.PI / 2);
   addObject(this.core.yAxis, plane);
+
+  // cubics[x][y][z]
+  const cubics = this.createCubicsArray();
+  this.setCubicsPosition(cubics);
+  this.addCubicsToCore(cubics);
 
   return this;
 };

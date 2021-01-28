@@ -44,6 +44,13 @@ CustomMesh.createPlane = function (width, height, color) {
   return new Mesh(geometry, material);
 };
 
+CustomMesh.createBox = function (width, height, depth, color) {
+  const geometry = createBoxGeometry(width, height, depth);
+  const material = createMaterial(color);
+
+  return new Mesh(geometry, material);
+};
+
 CustomMesh.getCenterPoint = function (mesh) {
   const { geometry } = mesh;
   const center = new Vector3();
