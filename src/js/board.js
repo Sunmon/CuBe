@@ -98,10 +98,6 @@ export function init() {
   customScene.add(cube.core.center);
   initEventListners();
 
-  let tempBox = CustomMesh.temp();
-  // const tempPlane = Cube.createPlane(0x987653);
-  customScene.add(tempBox);
-
   cube.core.center.add(axesHelper(1));
 
   animate(customCamera, customRenderer);
