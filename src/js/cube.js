@@ -2,7 +2,7 @@
 import CustomMesh from './mesh.js';
 import * as TWEEN from '../../lib/tween.esm.js';
 import * as THREE from '../../lib/three.module.js';
-import { CUBE_SIZE } from '../common/constants.js';
+import { CUBE_SIZE, CUBIC_SIZE } from '../common/constants.js';
 
 const addObject = function (target, obj) {
   target.add(obj);
@@ -37,7 +37,95 @@ Cube.core = {
 };
 
 Cube.createPlane = function (color) {
-  return CustomMesh.createPlane(CUBE_SIZE, CUBE_SIZE, color);
+  // return CustomMesh.createPlane(CUBE_SIZE, CUBE_SIZE, color);
+  return CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
+};
+
+Cube.createCubic = function (color) {
+  return CustomMesh.createBox(CUBIC_SIZE, CUBIC_SIZE, CUBIC_SIZE, color);
+};
+
+Cube.createCubicsArray = function () {
+  return [...Array(3)].map(() =>
+    [...Array(3)].map(() =>
+      [...Array(3)].map(() => this.createCubic(0xffffff)),
+    ),
+  );
+};
+
+Cube.setCubicsPosition = function (cubics) {
+  const xyz = [-CUBIC_SIZE, 0, CUBIC_SIZE];
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      for (let k = 0; k < 3; k++) {
+        cubics[i][j][k].position.set(xyz[i], xyz[j], xyz[k]);
+      }
+    }
+  }
+};
+
+Cube.addCubicsToCore = function (cubics) {
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      for (let k = 0; k < 3; k++) {
+        this.core.center.add(cubics[i][j][k]);
+      }
+    }
+  }
+};
+
+// 평면에 해당하는 3x3 벡터를 리턴
+Cube.filterCubicsByPlane = function (plane, value, cubics) {
+  if (plane === 'x') return cubics[value];
+  if (plane === 'y') return cubics.map(y => y[value]);
+  if (plane === 'z') return cubics.map(y => y.map(z => z[value]));
+
+  return [];
+};
+
+Cube.translateObject = function (axis, value, object) {
+  if (axis === 'x') return object.translateX(value);
+  if (axis === 'y') return object.translateY(value);
+  if (axis === 'z') return object.translateZ(value);
+
+  return null;
+};
+
+Cube.rotateObject = function (axis, value, object) {
+  if (axis === 'x') return object.rotateX(value);
+  if (axis === 'y') return object.rotateY(value);
+  if (axis === 'z') return object.rotateZ(value);
+
+  return null;
+};
+
+Cube.addStickers = function (cubics) {
+  const colors = [0xff6663, 0xfeb144, 0xfdfd97, 0x9ee09e, 0x9ec1cf, 0xcc99c9];
+  const filters = ['x0', 'x2', 'y0', 'y2', 'z0', 'z2'];
+  const rotateDir = ['y', 'y', 'x', 'x', 'y', 'y'];
+  const rotateDist = [
+    -Math.PI / 2,
+    Math.PI / 2,
+    Math.PI / 2,
+    -Math.PI / 2,
+    Math.PI,
+    0,
+  ];
+  const planes = filters.map(([f, v]) =>
+    this.filterCubicsByPlane(f, +v, cubics),
+  );
+
+  planes.forEach((plane, i) => {
+    const [dir, val] = filters[i];
+    plane.forEach(row => {
+      row.forEach(col => {
+        const sticker = this.createPlane(colors[i]);
+        this.translateObject(dir, ((val - 1) * CUBIC_SIZE) / 2, sticker);
+        this.rotateObject(rotateDir[i], rotateDist[i], sticker);
+        col.add(sticker);
+      });
+    });
+  });
 };
 
 // Z -> X -> Y 순으로 회전 (오일러 회전과 순서를 맞춤)
@@ -48,10 +136,12 @@ Cube.init = function () {
 
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
   // 그냥 line 벡터 알아내서 add한다음에 lookAt하면된다
-  const plane = this.createPlane(0x57838f);
-  plane.translateY(CUBE_SIZE / 2);
-  plane.rotateX(-Math.PI / 2);
-  addObject(this.core.yAxis, plane);
+
+  // cubics[x][y][z]
+  const cubics = this.createCubicsArray();
+  this.setCubicsPosition(cubics);
+  this.addCubicsToCore(cubics);
+  this.addStickers(cubics);
 
   return this;
 };
