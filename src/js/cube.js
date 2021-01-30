@@ -27,6 +27,7 @@ const Cube = {
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
   rotateStart: {},
   rotateInverse: '',
+  selectedMesh: null, // 마우스로 선택한 메쉬
 };
 
 Cube.core = {
@@ -160,6 +161,7 @@ Cube.resetMouseDirection = function () {
   this.mouseDirection = '';
 };
 
+// TODO: rotateCore를 범용적으로 일반화시키기
 Cube.rotateCore = function (start, delta, value) {
   const temp = new THREE.Quaternion();
   if (this.mouseDirection === 'x') {
@@ -195,7 +197,9 @@ Cube.rotateBody = function (start, current) {
     delta.normalize();
     const sign = Math.sign(delta[direction]);
     const value = sign * (start[direction] - current[direction]);
-    this.rotateCore(start, delta, value);
+    if (!this.selectedMesh) {
+      this.rotateCore(start, delta, value);
+    }
   }
 };
 

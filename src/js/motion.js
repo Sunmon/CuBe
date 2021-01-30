@@ -10,6 +10,7 @@ const PickHelper = {};
 PickHelper.pickPosition = { x: 0, y: 0 };
 PickHelper.pickStartedPosition = { x: 0, y: 0 };
 PickHelper.motioning = false;
+PickHelper.selected = null; // 마우스로 선택한 객체
 
 PickHelper.init = function () {
   this.raycaster = new Raycaster();
@@ -18,6 +19,10 @@ PickHelper.init = function () {
   this.raycaster.params.Line.threshold = 0.1;
 
   return this;
+};
+
+PickHelper.getCurrentIntersect = function (scene) {
+  return this.raycaster.intersectObjects(scene.children, true)[0];
 };
 
 PickHelper.pick = function (normalizedPosition, scene, camera, time) {

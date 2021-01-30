@@ -14,6 +14,7 @@ const customRenderer = CustomRenderer.init();
 const customScene = CustomScene.init();
 const cube = Cube.init();
 const pickHelper = PickHelper.init();
+let tempSelected = null;
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
@@ -25,12 +26,22 @@ const followUserGesture = function (event) {
 
 const clearUserGesture = function () {
   pickHelper.clearPickPosition();
+  cube.selectedMesh = null;
 };
 
 const initUserGesture = function (event) {
   event.preventDefault(); // 스크롤 이벤트 방지
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
+  tempSelected = pickHelper.getCurrentIntersect(customScene);
+  cube.selectedMesh = tempSelected?.object;
+  console.log(tempSelected?.object.geometry);
+  console.log(cube.selectedMesh);
+  // TODO: 선택한게 있다/ 없다로 큐브 전체회전 / 일반회전 나누기
+  // if (tempSelected.object.geometry.type === 'PlaneBufferGeometry')
+  // tempSelected = tempSelected.object.parent;
+  // if (tempSelected.object.geometry.type === 'BoxGeometry') console.log('box');
+  // console.log(tempSelected);
   cube.core.center.quaternion.copy(cube.lastCubeQuaternion);
 };
 
