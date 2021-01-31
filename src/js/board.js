@@ -42,23 +42,36 @@ const initUserGesture = function (event) {
 
   // TODO: worldQuaternion으로 수정하기
   cube.lastCubeQuaternion.copy(cube.core.center.quaternion);
+
+  // NOTE: 1. 큐브를 회전할 씬 그래프 생성
+  const tempScene = new THREE.Object3D();
+  tempScene.applyQuaternion(cube.core.center.quaternion);
+  tempScene.name = 'tempScene';
+  cube.tempScene = tempScene;
+
+  // NOTE: 2. 씬 그래프에 선택한 큐빅 추가
+  if (cube.selectedMesh) {
+    const cubic = cube.selectedMesh.parent;
+    cube.tempScene.add(cubic);
+  }
+
+  // NOTE: 3. 전체 씬에 씬 그래프 추가
+  customScene.add(tempScene);
 };
 
 const rotateToClosest = function () {
   const clickStart = { ...pickHelper.pickStartedPosition };
   const clickEnd = { ...pickHelper.pickPosition };
-  cube.slerp(clickStart, clickEnd, cube.selectedMesh?.parent.parent);
+  // NOTE: 5. tempScene에 있던 큐빅을 다시 cube로 돌려놓는다
+  if (!cube.selectedMesh) {
+    cube.slerp(clickStart, clickEnd);
+  } else {
+    cube.slerp(clickStart, clickEnd, cube.tempScene);
+    const cubic = cube.tempScene.children[0];
+    // NOTE: TODO: 6. slerp 결과를 확인한다
+  }
   pickHelper.clearPickPosition();
   cube.resetMouseDirection();
-
-  // scene 추가했던것 해제
-  if (cube.selectedMesh) {
-    let cubic = cube.selectedMesh.parent;
-    let tempScene = cubic.parent;
-    cube.core.center.add(cubic);
-    cube.core.center.remove(tempScene);
-  }
-  cube.selectedMesh = null;
 };
 
 const initMouseEvents = function () {

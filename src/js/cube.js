@@ -18,7 +18,12 @@ const getCloserDirection = function (object, origin, direction) {
 };
 
 const slerpObject = function (object, destination) {
-  new TWEEN.Tween(object.quaternion).to(destination, 100).start();
+  new TWEEN.Tween(object.quaternion)
+    .to(destination, 100)
+    .start()
+    .onComplete(() => {
+      Cube.sceneToCube();
+    });
 };
 
 // namespace
@@ -190,6 +195,34 @@ Cube.rotateCore = function (start, delta, value) {
   );
 };
 
+Cube.rotateCubicsBySceneTemp = function (start, delta, value) {
+  // NOTE: 4. 씬 그래프 회전
+  const { tempScene } = this;
+
+  const temp = new THREE.Quaternion();
+  if (this.mouseDirection === 'x') {
+    if (start.y > 0) {
+      // (x,y,z) -> (y,x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+    } else {
+      // (x,y,z) -> (y,-x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
+    }
+  } else if (this.mouseDirection === 'y') {
+    // (x,y,z) -> (z, x, -y)
+    if (start.x > 0) {
+      temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
+    } else {
+      // (x,y,z) -> (y,x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+    }
+  }
+
+  tempScene.setRotationFromQuaternion(
+    temp.multiply(this.lastCubeQuaternion).normalize(),
+  );
+};
+
 Cube.rotateCubics = function (start, delta, value) {
   // TODO: group으로 묶거나 scenegraph에 합치거나..
 
@@ -248,7 +281,8 @@ Cube.rotateBody = function (start, current) {
       // this.rotateCoreByWorldMatrix(start, delta, value);
     } else {
       // 하나씩 회전
-      this.rotateCubics(start, delta, value);
+      // this.rotateCubics(start, delta, value);
+      this.rotateCubicsBySceneTemp(start, delta, value);
     }
   }
 };
@@ -275,6 +309,19 @@ Cube.getUserDirection = function (clickStart, clickEnd) {
   if (invert) direction.invert();
 
   return direction;
+};
+
+// tempScene -> cube로 옮기는 임시 테스트 함수
+Cube.sceneToCube = function (object) {
+  // console.log(this);
+  const cubic = this.tempScene.children[0];
+  if (cubic) {
+    // NOTE: 7. tempScene에 있던 큐빅을 cube로 바꿔넣는다
+    this.core.center.attach(cubic);
+  }
+
+  // NOTE: 8. tempScene에 있던 것들 모두 clear
+  this.tempScene.clear();
 };
 
 Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
