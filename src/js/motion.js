@@ -25,6 +25,14 @@ PickHelper.getCurrentIntersect = function (scene) {
   return this.raycaster.intersectObjects(scene.children, true)[0];
 };
 
+PickHelper.getClosestSticker = function (scene) {
+  return this.raycaster
+    .intersectObjects(scene.children, true)
+    .find(
+      intersect => intersect.object.geometry.type === 'PlaneBufferGeometry',
+    );
+};
+
 PickHelper.pick = function (normalizedPosition, scene, camera, time) {
   // 이미 다른 물체를 피킹했다면 색을 복원합니다
   if (this.pickedObject) {
@@ -38,9 +46,10 @@ PickHelper.pick = function (normalizedPosition, scene, camera, time) {
     true,
   );
   if (intersectedObjects.length) {
-    this.pickedObject = intersectedObjects[0].object;
-    this.pickedObjectSavedColor = this.pickedObject.material.color.getHex();
-    this.pickedObject.material.color.setHex(
+    // this.pickedObject = intersectedObjects[0].object;
+    this.pickedObject = this.getClosestSticker(scene)?.object;
+    this.pickedObjectSavedColor = this.pickedObject?.material.color.getHex();
+    this.pickedObject?.material.color.setHex(
       (time * 8) % 2 > 1 ? 0xffff00 : 0xff0000,
     );
   }
