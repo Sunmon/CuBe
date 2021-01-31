@@ -33,24 +33,32 @@ const initUserGesture = function (event) {
   event.preventDefault(); // 스크롤 이벤트 방지
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  tempSelected = pickHelper.getCurrentIntersect(customScene);
+  // tempSelected = pickHelper.getCurrentIntersect(customScene);
+  tempSelected = pickHelper.getClosestSticker(customScene);
   cube.selectedMesh = tempSelected?.object;
-  console.log(tempSelected?.object.geometry);
-  console.log(cube.selectedMesh);
-  // TODO: 선택한게 있다/ 없다로 큐브 전체회전 / 일반회전 나누기
-  // if (tempSelected.object.geometry.type === 'PlaneBufferGeometry')
-  // tempSelected = tempSelected.object.parent;
-  // if (tempSelected.object.geometry.type === 'BoxGeometry') console.log('box');
-  // console.log(tempSelected);
-  cube.core.center.quaternion.copy(cube.lastCubeQuaternion);
+
+  // cube core의 마지막 매트릭스 저장
+  cube.lastCubeWorldMatrix.copy(cube.core.center.matrixWorld);
+
+  // TODO: worldQuaternion으로 수정하기
+  cube.lastCubeQuaternion.copy(cube.core.center.quaternion);
 };
 
 const rotateToClosest = function () {
   const clickStart = { ...pickHelper.pickStartedPosition };
   const clickEnd = { ...pickHelper.pickPosition };
-  cube.slerp(clickStart, clickEnd);
+  cube.slerp(clickStart, clickEnd, cube.selectedMesh?.parent.parent);
   pickHelper.clearPickPosition();
   cube.resetMouseDirection();
+
+  // scene 추가했던것 해제
+  if (cube.selectedMesh) {
+    let cubic = cube.selectedMesh.parent;
+    let tempScene = cubic.parent;
+    cube.core.center.add(cubic);
+    cube.core.center.remove(tempScene);
+  }
+  cube.selectedMesh = null;
 };
 
 const initMouseEvents = function () {

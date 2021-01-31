@@ -24,6 +24,7 @@ const slerpObject = function (object, destination) {
 // namespace
 const Cube = {
   lastCubeQuaternion: new THREE.Quaternion(),
+  lastCubeWorldMatrix: new THREE.Matrix4(),
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
   rotateStart: {},
   rotateInverse: '',
@@ -43,7 +44,10 @@ Cube.createPlane = function (color) {
 };
 
 Cube.createCubic = function (color) {
-  return CustomMesh.createBox(CUBIC_SIZE, CUBIC_SIZE, CUBIC_SIZE, color);
+  const cubic = CustomMesh.createBox(CUBIC_SIZE, CUBIC_SIZE, CUBIC_SIZE, color);
+  cubic.name = 'cubic';
+
+  return cubic;
 };
 
 Cube.createCubicsArray = function () {
@@ -186,8 +190,50 @@ Cube.rotateCore = function (start, delta, value) {
   );
 };
 
+Cube.rotateCubics = function (start, delta, value) {
+  // TODO: group으로 묶거나 scenegraph에 합치거나..
+
+  const tempScene = new THREE.Object3D();
+  tempScene.name = 'tempScene';
+
+  const temp = new THREE.Quaternion();
+  if (this.mouseDirection === 'x') {
+    if (start.y > 0) {
+      // (x,y,z) -> (y,x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+    } else {
+      // (x,y,z) -> (y,-x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
+    }
+  } else if (this.mouseDirection === 'y') {
+    // (x,y,z) -> (z, x, -y)
+    if (start.x > 0) {
+      temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
+    } else {
+      // (x,y,z) -> (y,x,z)
+      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+    }
+  }
+
+  // const clicked = this.selectedMesh;
+  const cubic = this.selectedMesh.parent;
+  this.core.center.add(tempScene);
+  tempScene.add(cubic);
+
+  const worldCoreRotation = this.lastCubeQuaternion;
+  // console.log(tempScene.quaternion);
+  tempScene.setRotationFromQuaternion(
+    temp.normalize(),
+    // temp.multiply(this.lastCubeQuaternion).normalize(),
+  );
+  // tempScene.quaternion
+  // .multiplyQuaternions(temp, this.lastCubeQuaternion)
+  // .normalize();
+};
+
 Cube.rotateBody = function (start, current) {
   // TODO: 축의 방향 바꾸기
+
   const delta = new THREE.Vector3(start.x - current.x, start.y - current.y, 0);
   this.rotateStart = start;
   if (this.mouseDirection || this.updateMouseDirection(delta)) {
@@ -199,6 +245,10 @@ Cube.rotateBody = function (start, current) {
     const value = sign * (start[direction] - current[direction]);
     if (!this.selectedMesh) {
       this.rotateCore(start, delta, value);
+      // this.rotateCoreByWorldMatrix(start, delta, value);
+    } else {
+      // 하나씩 회전
+      this.rotateCubics(start, delta, value);
     }
   }
 };
@@ -227,15 +277,17 @@ Cube.getUserDirection = function (clickStart, clickEnd) {
   return direction;
 };
 
-Cube.slerp = function (clickStart, clickEnd) {
+Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
   const userDirection = this.getUserDirection(clickStart, clickEnd);
   const destination = getCloserDirection(
-    this.core.center,
+    // this.core.center,
+    object,
     this.lastCubeQuaternion,
     userDirection,
   );
 
-  slerpObject(this.core.center, destination);
+  // slerpObject(this.core.center, destination);
+  slerpObject(object, destination);
   this.setLastCubeQuaternion(destination);
 };
 
