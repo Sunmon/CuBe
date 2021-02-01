@@ -22,7 +22,20 @@ const slerpObject = function (object, destination) {
     .to(destination, 100)
     .start()
     .onComplete(() => {
-      Cube.sceneToCube();
+      // NOTE: 7. tempScene에 있던 큐빅을 다시 cube로 돌려놓는다
+      if (Cube.rotatingPlane) {
+        Cube.attachCubicsToCore();
+        if (Cube.needCubicsUpdate) {
+          // NOTE: 8. cubics 어레이도 회전시킨다
+          Cube.updateCubicsArray();
+        }
+        Cube.rotatingPlane = null;
+      }
+
+      // NOTE: 8. tempScene을 삭제한다
+      Cube.tempScene = null;
+      console.log('result:::');
+      Cube.printPositions();
     });
 };
 
@@ -30,10 +43,88 @@ const slerpObject = function (object, destination) {
 const Cube = {
   lastCubeQuaternion: new THREE.Quaternion(),
   lastCubeWorldMatrix: new THREE.Matrix4(),
+  tempScene: null,
+  cubics: [[[]]], // 큐빅 mesh 저장 어레이
+  rotatingPlane: null, // 회전하는 3x3 평면 임시 저장
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
   rotateStart: {},
   rotateInverse: '',
   selectedMesh: null, // 마우스로 선택한 메쉬
+  needCubicsUpdate: false,
+};
+
+// 3x3 매트릭스 90도 회전
+Cube.rotateMatrix90 = function (arr, clockwise) {
+  // console.log(arr);
+  const ret = Array.from(Array(3), () => Array(3).fill(0));
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      if (clockwise) {
+        ret[i][3 - j - 1] = arr[j][i];
+      } else {
+        ret[i][j] = arr[j][3 - i - 1];
+      }
+    }
+  }
+
+  return ret;
+};
+
+// TODO: cubics 어레이 수정 작성하기
+Cube.updateCubicsArray = function () {
+  console.log('update:::');
+  // NOTE: clockwise는 회전방향과 반대로 해야 함
+  // TODO: mouseDirection, start.y 이런것들로 clockwise 정하기
+  // TODO: mouseDirection, start.y 이런것들로 아예 회전 일반화하여 정하기
+
+  const newMatrix = this.rotateMatrix90(this.rotatingPlane, true);
+
+  for (let i = 0; i < 3; i++) {
+    let str = '';
+    for (let j = 0; j < 3; j++) {
+      str += `(${Math.round(newMatrix[i][j].position.x)}, ${Math.round(
+        newMatrix[i][j].position.y,
+      )}, ${Math.round(newMatrix[i][j].position.z)}), `;
+    }
+    str += '\n';
+    console.log(str);
+  }
+
+  // NOTE: plane 출력
+  console.log('updated plane');
+  for (let i = 0; i < 3; i++) {
+    let str = '';
+    for (let j = 0; j < 3; j++) {
+      str += `(${Math.round(this.rotatingPlane[i][j].position.x)}, ${Math.round(
+        this.rotatingPlane[i][j].position.y,
+      )}, ${Math.round(this.rotatingPlane[i][j].position.z)}), `;
+    }
+    str += '\n';
+    console.log(str);
+  }
+
+  // change
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      this.rotatingPlane[i][j] = newMatrix[i][j];
+      this.rotatingPlane[i][j].position.round();
+    }
+  }
+};
+
+Cube.printPositions = function () {
+  for (let i = 0; i < 3; i++) {
+    let str = '';
+    for (let j = 0; j < 3; j++) {
+      for (let k = 0; k < 3; k++) {
+        str += `(${Math.round(this.cubics[i][j][k].position.x)},${Math.round(
+          this.cubics[i][j][k].position.y,
+        )},${Math.round(this.cubics[i][j][k].position.z)}), `;
+      }
+      str += '\n';
+    }
+    console.log(str);
+  }
 };
 
 Cube.core = {
@@ -152,6 +243,7 @@ Cube.init = function () {
   this.setCubicsPosition(cubics);
   this.addCubicsToCore(cubics);
   this.addStickers(cubics);
+  this.cubics = cubics;
 
   return this;
 };
@@ -185,6 +277,8 @@ Cube.rotateCore = function (start, delta, value) {
     // (x,y,z) -> (z, x, -y)
     if (start.x > 0) {
       temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
+      // NOTE: 09. TODO: 선택면(윗면, 옆면 등)에 따라서 회전을 다르게 하거나
+      // NOTE: 10. TODO: or 회전시킬때 매트릭스를 돌려버리기
     } else {
       // (x,y,z) -> (y,x,z)
       temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
@@ -221,6 +315,25 @@ Cube.rotateCubicsBySceneTemp = function (start, delta, value) {
   tempScene.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
+};
+
+// FIXME: mouse를 어느정도 이동해야 direction 이 정해짐
+Cube.getContainingPlane = function (cubic) {
+  if (this.mouseDirection === 'x') {
+    console.log('x moving');
+    console.log(cubic.position.y);
+
+    return this.filterCubicsByPlane('y', cubic.position.y + 1, this.cubics);
+  }
+  if (this.mouseDirection === 'y') {
+    // NOTE: TODO: 선택한 면에 따라 포함한 평면 다르게 처리하기
+    console.log(' y moving');
+    console.log(cubic.position.x);
+    return this.filterCubicsByPlane('x', cubic.position.x + 1, this.cubics);
+  }
+
+  console.log('no moving');
+  return null;
 };
 
 Cube.rotateCubics = function (start, delta, value) {
@@ -312,15 +425,20 @@ Cube.getUserDirection = function (clickStart, clickEnd) {
 };
 
 // tempScene -> cube로 옮기는 임시 테스트 함수
-Cube.sceneToCube = function (object) {
-  // console.log(this);
-  const cubic = this.tempScene.children[0];
-  if (cubic) {
-    // NOTE: 7. tempScene에 있던 큐빅을 cube로 바꿔넣는다
-    this.core.center.attach(cubic);
+Cube.attachCubicsToCore = function (object) {
+  // console.log(this.tempScene.children);
+  const cubics = this.tempScene.children;
+  if (cubics.length) {
+    for (let i = cubics.length - 1; i >= 0; i--) {
+      this.core.center.attach(cubics[i]);
+    }
+
+    // NOTE: 8. 그룹 회전하기 (예제: y축 회전)
+    // cubics.forEach(cubic => this.core.center.attach(cubic));
+    // cubics.forEach(cubic => console.log(cubic));
+    // this.core.center.attach(cubic);
   }
 
-  // NOTE: 8. tempScene에 있던 것들 모두 clear
   this.tempScene.clear();
 };
 
@@ -335,6 +453,14 @@ Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
 
   // slerpObject(this.core.center, destination);
   slerpObject(object, destination);
+
+  // NOTE: 6. TODO: 회전시킨대로 cubics 매트릭스도 회전하기
+  if (!destination.equals(this.lastCubeQuaternion)) {
+    console.log(userDirection);
+    this.needCubicsUpdate = true;
+  } else {
+    this.needCubicsUpdate = false;
+  }
   this.setLastCubeQuaternion(destination);
 };
 

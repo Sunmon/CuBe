@@ -19,7 +19,40 @@ let tempSelected = null;
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
+
   if (pickHelper.motioning) {
+    // NOTE: 3. 씬 그래프에 선택한 평면 추가
+    if (cube.selectedMesh && !cube.rotatingPlane) {
+      if (cube.mouseDirection) {
+        const cubic = cube.selectedMesh.parent;
+        const plane = cube.getContainingPlane(cubic);
+        if (!plane) {
+          console.log('plane not found');
+          return;
+        }
+
+        console.log('rotating plane: ');
+        for (let i = 0; i < 3; i++) {
+          let str = '';
+          for (let j = 0; j < 3; j++) {
+            str += `(${Math.round(plane[i][j].position.x)}, ${Math.round(
+              plane[i][j].position.y,
+            )}, ${Math.round(plane[i][j].position.z)}), `;
+          }
+          str += '\n';
+          console.log(str);
+        }
+
+        cube.rotatingPlane = plane;
+        // console.log(plane);
+        plane.forEach(row => {
+          row.forEach(col => {
+            cube.tempScene.add(col);
+          });
+        });
+      }
+    }
+
     cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
   }
 };
@@ -37,10 +70,11 @@ const initUserGesture = function (event) {
   tempSelected = pickHelper.getClosestSticker(customScene);
   cube.selectedMesh = tempSelected?.object;
 
-  // cube core의 마지막 매트릭스 저장
-  cube.lastCubeWorldMatrix.copy(cube.core.center.matrixWorld);
+  console.log('origin');
+  cube.printPositions();
 
-  // TODO: worldQuaternion으로 수정하기
+  // cube core의 마지막 매트릭스 저장
+  cube.lastCubeWorldMatrix.copy(cube.core.center.matrixWorld); // TODO: 안쓰면 삭제
   cube.lastCubeQuaternion.copy(cube.core.center.quaternion);
 
   // NOTE: 1. 큐브를 회전할 씬 그래프 생성
@@ -49,13 +83,7 @@ const initUserGesture = function (event) {
   tempScene.name = 'tempScene';
   cube.tempScene = tempScene;
 
-  // NOTE: 2. 씬 그래프에 선택한 큐빅 추가
-  if (cube.selectedMesh) {
-    const cubic = cube.selectedMesh.parent;
-    cube.tempScene.add(cubic);
-  }
-
-  // NOTE: 3. 전체 씬에 씬 그래프 추가
+  // NOTE: 2. 전체 씬에 씬 그래프 추가
   customScene.add(tempScene);
 };
 
@@ -64,14 +92,15 @@ const rotateToClosest = function () {
   const clickEnd = { ...pickHelper.pickPosition };
   // NOTE: 5. tempScene에 있던 큐빅을 다시 cube로 돌려놓는다
   if (!cube.selectedMesh) {
-    cube.slerp(clickStart, clickEnd);
+    cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
   } else {
-    cube.slerp(clickStart, clickEnd, cube.tempScene);
-    const cubic = cube.tempScene.children[0];
-    // NOTE: TODO: 6. slerp 결과를 확인한다
+    cube.slerp(clickStart, clickEnd, cube.tempScene); // 특정 층만 회전
+    // const cubic = cube.tempScene.children[0];
   }
   pickHelper.clearPickPosition();
   cube.resetMouseDirection();
+  cube.selectedMesh = null;
+  cube.mouseDirection = '';
 };
 
 const initMouseEvents = function () {
