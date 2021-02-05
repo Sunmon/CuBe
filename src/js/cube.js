@@ -229,6 +229,15 @@ Cube.addStickers = function (cubics) {
   });
 };
 
+Cube.getWorldNormal = function (object) {
+  const normalMatrix = new THREE.Matrix3();
+  const worldNormal = new THREE.Vector3(0, 0, 1);
+  normalMatrix.getNormalMatrix(object.matrixWorld);
+  worldNormal.applyMatrix3(normalMatrix).normalize().round();
+
+  return worldNormal;
+};
+
 // Z -> X -> Y 순으로 회전 (오일러 회전과 순서를 맞춤)
 Cube.init = function () {
   // addObject(this.core.center, this.core.zAxis);
@@ -244,6 +253,8 @@ Cube.init = function () {
   this.addCubicsToCore(cubics);
   this.addStickers(cubics);
   this.cubics = cubics;
+
+  // console.log(this.cubics[0][0][0]);
 
   return this;
 };
