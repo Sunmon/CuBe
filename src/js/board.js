@@ -21,11 +21,17 @@ const followUserGesture = function (event) {
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
 
   if (pickHelper.motioning) {
+    // TODO: normalvector 확인
+
     // NOTE: 3. 씬 그래프에 선택한 평면 추가
     if (cube.selectedMesh && !cube.rotatingPlane) {
       if (cube.mouseDirection) {
         const cubic = cube.selectedMesh.parent;
-        const plane = cube.getContainingPlane(cubic);
+        const plane = cube.calculateWorldPlaneToRotate(
+          cube.selectedMesh,
+          cubic,
+        );
+        // const plane = cube.getContainingPlane(cubic);
         if (!plane) {
           console.log('plane not found');
           return;
@@ -53,6 +59,14 @@ const followUserGesture = function (event) {
       }
     }
 
+    // 선택한 메쉬가 없다? => 방향따라 모든 평면을 씬 그래프에 추가
+    else if (!cube.selectedMesh) {
+      if (cube.mouseDirection) {
+        // NOTE: 모든 평면을 바꾼다
+      }
+      console.log('no mesh');
+    }
+
     cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
   }
 };
@@ -69,6 +83,13 @@ const initUserGesture = function (event) {
   // tempSelected = pickHelper.getCurrentIntersect(customScene);
   tempSelected = pickHelper.getClosestSticker(customScene);
   cube.selectedMesh = tempSelected?.object;
+
+  if (cube.selectedMesh) {
+    console.log('worldNormal: ');
+    console.log(cube.getWorldNormal(cube.selectedMesh));
+  } else {
+    console.log('cube.selectedMesh === undefined');
+  }
 
   console.log('origin');
   cube.printPositions();
@@ -95,12 +116,16 @@ const rotateToClosest = function () {
     cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
   } else {
     cube.slerp(clickStart, clickEnd, cube.tempScene); // 특정 층만 회전
-    // const cubic = cube.tempScene.children[0];
+    // const cubic = cube.tempScene.0children[0];
   }
+
   pickHelper.clearPickPosition();
   cube.resetMouseDirection();
   cube.selectedMesh = null;
   cube.mouseDirection = '';
+
+  // pickHelper.clearPickPosition();
+  // cube.selectedMesh = null;
 };
 
 const initMouseEvents = function () {

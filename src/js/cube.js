@@ -9,6 +9,7 @@ const addObject = function (target, obj) {
 };
 
 const getCloserDirection = function (object, origin, direction) {
+  // FIXME: cubics는 계산이 잘 안 맞을 때 있음.. 돌아가야하는데 다시 원래자리로 감
   const dest = new THREE.Quaternion().multiplyQuaternions(direction, origin);
   if (object.quaternion.angleTo(origin) < object.quaternion.angleTo(dest)) {
     dest.copy(origin);
@@ -17,7 +18,7 @@ const getCloserDirection = function (object, origin, direction) {
   return dest;
 };
 
-const slerpObject = function (object, destination) {
+const slerpObject = function (object, destination, clockwise) {
   new TWEEN.Tween(object.quaternion)
     .to(destination, 100)
     .start()
@@ -26,8 +27,7 @@ const slerpObject = function (object, destination) {
       if (Cube.rotatingPlane) {
         Cube.attachCubicsToCore();
         if (Cube.needCubicsUpdate) {
-          // NOTE: 8. cubics 어레이도 회전시킨다
-          Cube.updateCubicsArray();
+          Cube.updateCubicsArray(clockwise);
         }
         Cube.rotatingPlane = null;
       }
@@ -46,6 +46,7 @@ const Cube = {
   tempScene: null,
   cubics: [[[]]], // 큐빅 mesh 저장 어레이
   rotatingPlane: null, // 회전하는 3x3 평면 임시 저장
+  rotatingAxes: '', // x,y,z
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
   rotateStart: {},
   rotateInverse: '',
@@ -57,6 +58,8 @@ const Cube = {
 Cube.rotateMatrix90 = function (arr, clockwise) {
   // console.log(arr);
   const ret = Array.from(Array(3), () => Array(3).fill(0));
+  // TODO: 0 - 2 바꾸기
+
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
       if (clockwise) {
@@ -71,13 +74,16 @@ Cube.rotateMatrix90 = function (arr, clockwise) {
 };
 
 // TODO: cubics 어레이 수정 작성하기
-Cube.updateCubicsArray = function () {
+Cube.updateCubicsArray = function (clockwise) {
   console.log('update:::');
   // NOTE: clockwise는 회전방향과 반대로 해야 함
   // TODO: mouseDirection, start.y 이런것들로 clockwise 정하기
   // TODO: mouseDirection, start.y 이런것들로 아예 회전 일반화하여 정하기
 
-  const newMatrix = this.rotateMatrix90(this.rotatingPlane, true);
+  // const worldNormal = this.getWorldNormal(this.selectedMesh);
+  // const { rotatingAxes } = this;
+
+  const newMatrix = this.rotateMatrix90(this.rotatingPlane, clockwise);
 
   for (let i = 0; i < 3; i++) {
     let str = '';
@@ -243,7 +249,6 @@ Cube.init = function () {
   // addObject(this.core.center, this.core.zAxis);
   // addObject(this.core.center, this.core.xAxis);
   addObject(this.core.center, this.core.yAxis);
-
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
   // 그냥 line 벡터 알아내서 add한다음에 lookAt하면된다
 
@@ -276,55 +281,96 @@ Cube.resetMouseDirection = function () {
 // TODO: rotateCore를 범용적으로 일반화시키기
 Cube.rotateCore = function (start, delta, value) {
   const temp = new THREE.Quaternion();
-  if (this.mouseDirection === 'x') {
-    if (start.y > 0) {
-      // (x,y,z) -> (y,x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-    } else {
-      // (x,y,z) -> (y,-x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
-    }
-  } else if (this.mouseDirection === 'y') {
-    // (x,y,z) -> (z, x, -y)
-    if (start.x > 0) {
-      temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
-      // NOTE: 09. TODO: 선택면(윗면, 옆면 등)에 따라서 회전을 다르게 하거나
-      // NOTE: 10. TODO: or 회전시킬때 매트릭스를 돌려버리기
-    } else {
-      // (x,y,z) -> (y,x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-    }
-  }
+  const vector = {
+    x: start =>
+      start.y > 0
+        ? new THREE.Vector3(delta.y, delta.x, 0)
+        : new THREE.Vector3(delta.y, -delta.x, 0),
+    y: start =>
+      start.x > 0
+        ? new THREE.Vector3(0, delta.x, -delta.y)
+        : new THREE.Vector3(delta.y, delta.x, 0),
+  };
+  temp.setFromAxisAngle(vector[this.mouseDirection](start), value);
+  // if (this.mouseDirection === 'x') {
+  //   if (start.y > 0) {
+  //     // (x,y,z) -> (y,x,z)
+  //     temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+  //   } else {
+  //     // (x,y,z) -> (y,-x,z)
+  //     temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
+  //   }
+  // } else if (this.mouseDirection === 'y') {
+  //   // (x,y,z) -> (z, x, -y)
+  //   if (start.x > 0) {
+  //     temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
+  //     // NOTE: 09. TODO: 선택면(윗면, 옆면 등)에 따라서 회전을 다르게 하거나
+  //     // NOTE: 10. TODO: or 회전시킬때 매트릭스를 돌려버리기
+  //   } else {
+  //     // (x,y,z) -> (y,x,z)
+  //     temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
+  //   }
+  // }
   this.core.center.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
 };
 
 Cube.rotateCubicsBySceneTemp = function (start, delta, value) {
+  if (!this.rotatingAxes) return;
   // NOTE: 4. 씬 그래프 회전
   const { tempScene } = this;
-
   const temp = new THREE.Quaternion();
-  if (this.mouseDirection === 'x') {
-    if (start.y > 0) {
-      // (x,y,z) -> (y,x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-    } else {
-      // (x,y,z) -> (y,-x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
-    }
-  } else if (this.mouseDirection === 'y') {
-    // (x,y,z) -> (z, x, -y)
-    if (start.x > 0) {
-      temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
-    } else {
-      // (x,y,z) -> (y,x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-    }
-  }
-
+  const vector = {
+    x: () => new THREE.Vector3(delta.y, delta.x, 0),
+    y: () => new THREE.Vector3(delta.y, -delta.x, 0),
+    z: worldNormal =>
+      worldNormal.y === 1
+        ? new THREE.Vector3(0, delta.y, delta.x)
+        : new THREE.Vector3(0, delta.x, -delta.y),
+  };
+  const worldNormal = this.getWorldNormal(this.selectedMesh);
+  // TODO: clock, counterclock 설정
+  temp.setFromAxisAngle(vector[this.rotatingAxes](worldNormal), value);
   tempScene.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
+  );
+};
+
+Cube.calculateRotaingAxes = function (worldNormal, mouseDirection) {
+  if (worldNormal.x === 1) {
+    return mouseDirection === 'x' ? 'y' : 'z';
+  }
+  if (worldNormal.y === 1) {
+    return mouseDirection === 'x' ? 'z' : 'x';
+    // return mouseDirection === 'x' ? 'x' : 'z';
+  }
+
+  if (worldNormal.z === 1) {
+    return mouseDirection === 'x' ? 'y' : 'x';
+  }
+
+  // if (mouseDirection === 'x') {
+  // return worldNormal.x === 1 ? 'y' : worldNormal.y === 1 ? 'z' : 'x';
+  // }
+  // if (mouseDirection === 'y') {
+  //   return worldNormal.x === 1 ? 'z' : 'x';
+  // }
+
+  return null;
+};
+
+Cube.calculateWorldPlaneToRotate = function (selected, cubic) {
+  const worldNormal = this.getWorldNormal(selected);
+  this.rotatingAxes = this.calculateRotaingAxes(
+    worldNormal,
+    this.mouseDirection,
+  );
+
+  return this.filterCubicsByPlane(
+    this.rotatingAxes,
+    cubic.position[this.rotatingAxes] + 1,
+    this.cubics,
   );
 };
 
@@ -396,6 +442,7 @@ Cube.rotateBody = function (start, current) {
   if (this.mouseDirection || this.updateMouseDirection(delta)) {
     const direction = this.mouseDirection;
     const weight = 10; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
+    const velocity = 0.1;
     delta[direction] *= weight;
     delta.normalize();
     const sign = Math.sign(delta[direction]);
@@ -406,7 +453,7 @@ Cube.rotateBody = function (start, current) {
     } else {
       // 하나씩 회전
       // this.rotateCubics(start, delta, value);
-      this.rotateCubicsBySceneTemp(start, delta, value);
+      this.rotateCubicsBySceneTemp(start, delta, value + velocity);
     }
   }
 };
@@ -461,9 +508,11 @@ Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
     this.lastCubeQuaternion,
     userDirection,
   );
-
-  // slerpObject(this.core.center, destination);
-  slerpObject(object, destination);
+  let clockwise = false;
+  if (clickEnd.x > clickStart.x && this.mouseDirection === 'x')
+    clockwise = true;
+  if (clickEnd.y > clickStart.y && this.mouseDirection === 'y')
+    clockwise = true;
 
   // NOTE: 6. TODO: 회전시킨대로 cubics 매트릭스도 회전하기
   if (!destination.equals(this.lastCubeQuaternion)) {
@@ -472,6 +521,9 @@ Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
   } else {
     this.needCubicsUpdate = false;
   }
+  // slerpObject(this.core.center, destination);
+  slerpObject(object, destination, clockwise);
+
   this.setLastCubeQuaternion(destination);
 };
 
