@@ -21,42 +21,14 @@ const followUserGesture = function (event) {
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
 
   if (pickHelper.motioning) {
-    // TODO: normalvector 확인
-
     // NOTE: 3. 씬 그래프에 선택한 평면 추가
-    if (cube.selectedMesh && !cube.rotatingPlane) {
-      if (cube.mouseDirection) {
-        const cubic = cube.selectedMesh.parent;
-        const plane = cube.calculateWorldPlaneToRotate(
-          cube.selectedMesh,
-          cubic,
-        );
-        // const plane = cube.getContainingPlane(cubic);
-        if (!plane) {
-          console.log('plane not found');
-          return;
-        }
-
-        console.log('rotating plane: ');
-        for (let i = 0; i < 3; i++) {
-          let str = '';
-          for (let j = 0; j < 3; j++) {
-            str += `(${Math.round(plane[i][j].position.x)}, ${Math.round(
-              plane[i][j].position.y,
-            )}, ${Math.round(plane[i][j].position.z)}), `;
-          }
-          str += '\n';
-          console.log(str);
-        }
-
-        cube.rotatingPlane = plane;
-        // console.log(plane);
-        plane.forEach(row => {
-          row.forEach(col => {
-            cube.rotateObjectScene.add(col);
-          });
-        });
-      }
+    if (cube.selectedMesh && !cube.rotatingCubics && cube.mouseDirection) {
+      const cubic = cube.selectedMesh.parent;
+      cube.rotatingCubics = cube.calculateRotatingCubics(cubic);
+      cube.addRotatingCubicsToObjectScene(
+        cube.rotatingCubics,
+        cube.rotateObjectScene,
+      );
     }
 
     // 선택한 메쉬가 없다? => 방향따라 모든 평면을 씬 그래프에 추가

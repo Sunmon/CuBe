@@ -23,12 +23,12 @@ const slerpObject = function (object, destination, clockwise) {
     .to(destination, 100)
     .start()
     .onComplete(() => {
-      if (Cube.rotatingPlane) {
+      if (Cube.rotatingCubics) {
         Cube.attachCubicsToCore();
         if (Cube.needCubicsUpdate) {
           Cube.updateCubicsArray(clockwise);
         }
-        Cube.rotatingPlane = null;
+        Cube.rotatingCubics = null;
       }
       Cube.rotateObjectScene.clear();
       Cube.rotateObjectScene = null;
@@ -40,9 +40,9 @@ const slerpObject = function (object, destination, clockwise) {
 const Cube = {
   lastCubeQuaternion: new THREE.Quaternion(),
   lastCubeWorldMatrix: new THREE.Matrix4(),
-  rotateObjectScene: null,
+  rotateObjectScene: null, // view
   cubics: [[[]]], // 큐빅 mesh 저장 어레이
-  rotatingPlane: null, // 회전하는 3x3 평면 임시 저장
+  rotatingCubics: null, // 회전하는 3x3 평면 임시 저장, model
   rotatingAxes: '', // x,y,z
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
   rotateStart: {},
@@ -69,12 +69,12 @@ Cube.rotateMatrix90 = function (arr, clockwise) {
 
 // TODO: cubics 어레이 수정 작성하기
 Cube.updateCubicsArray = function (clockwise) {
-  const newMatrix = this.rotateMatrix90(this.rotatingPlane, clockwise);
+  const newMatrix = this.rotateMatrix90(this.rotatingCubics, clockwise);
   // change
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
-      this.rotatingPlane[i][j] = newMatrix[i][j];
-      this.rotatingPlane[i][j].position.round();
+      this.rotatingCubics[i][j] = newMatrix[i][j];
+      this.rotatingCubics[i][j].position.round();
     }
   }
 };
@@ -312,7 +312,7 @@ Cube.calculateRotaingAxes = function (worldNormal, mouseDirection) {
   return null;
 };
 
-Cube.calculateWorldPlaneToRotate = function (selected, cubic) {
+Cube.calculateCubicsToRotate = function (selected, cubic) {
   const worldNormal = this.getWorldNormal(selected);
   this.rotatingAxes = this.calculateRotaingAxes(
     worldNormal,
@@ -430,6 +430,20 @@ Cube.attachCubicsToCore = function (object) {
   }
 
   this.rotateObjectScene.clear();
+};
+
+Cube.calculateRotatingCubics = function (cubic) {
+  return this.calculateCubicsToRotate(this.selectedMesh, cubic);
+};
+
+Cube.addRotatingCubicsToObjectScene = function (cubicsMatrix, scene) {
+  cubicsMatrix.forEach(row => {
+    row.forEach(col => {
+      scene.add(col);
+    });
+  });
+
+  return scene;
 };
 
 Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
