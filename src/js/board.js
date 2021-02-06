@@ -53,7 +53,7 @@ const followUserGesture = function (event) {
         // console.log(plane);
         plane.forEach(row => {
           row.forEach(col => {
-            cube.tempScene.add(col);
+            cube.rotateObjectScene.add(col);
           });
         });
       }
@@ -102,7 +102,7 @@ const initUserGesture = function (event) {
   const tempScene = new THREE.Object3D();
   tempScene.applyQuaternion(cube.core.center.quaternion);
   tempScene.name = 'tempScene';
-  cube.tempScene = tempScene;
+  cube.rotateObjectScene = tempScene;
 
   // NOTE: 2. 전체 씬에 씬 그래프 추가
   customScene.add(tempScene);
@@ -115,7 +115,7 @@ const rotateToClosest = function () {
   if (!cube.selectedMesh) {
     cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
   } else {
-    cube.slerp(clickStart, clickEnd, cube.tempScene); // 특정 층만 회전
+    cube.slerp(clickStart, clickEnd, cube.rotateObjectScene); // 특정 층만 회전
     // const cubic = cube.tempScene.0children[0];
   }
 
