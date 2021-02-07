@@ -29,10 +29,67 @@ const slerpObject = function (object, destination, clockwise) {
           Cube.updateCubicsArray(clockwise);
         }
         Cube.rotatingCubics = null;
+      } else {
+        // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다
+        // if (Cube.needCubicsUpdate) {
+        //   const cubicsMatrix = [
+        //     Cube.filterCubicsByPlane(Cube.rotatingAxes, 0, Cube.cubics),
+        //     Cube.filterCubicsByPlane(Cube.rotatingAxes, 1, Cube.cubics),
+        //     Cube.filterCubicsByPlane(Cube.rotatingAxes, 2, Cube.cubics),
+        //   ];
+        //   // console.log(cubicsMatrix);
+        //   for (let k = 0; k < cubicsMatrix.length; k++) {
+        //     const newMatrix = Cube.rotateMatrix90(cubicsMatrix[k], true);
+        //     for (let i = 0; i < 3; i++) {
+        //       for (let j = 0; j < 3; j++) {
+        //         cubicsMatrix[k][i][j] = newMatrix[i][j];
+        //         cubicsMatrix[k][i][j].position.round();
+        //       }
+        //     }
+        //   }
+        //   Cube.printPositions();
+        // for (let k = 0; k < 3; k++) {
+        //   for (let i = 0; i < 3; i++) {
+        //     console.log(
+        //       cubicsMatrix[k][i][0].position,
+        //       cubicsMatrix[k][i][1].position,
+        //       cubicsMatrix[k][i][2].position,
+        //     );
+        //     console.log();
+        //   }
+        // }
+        // console.log(cubicsMatrix[0].map(row => col => col));
+        // console.log(cubicsMatrix[1]);
+        // console.log(cubicsMatrix[2]);
+        // console.log(Cube.core.center.up);
+        // console.log(
+        //   Cube.core.center.up
+        //     .clone()
+        //     .applyQuaternion(Cube.lastCubeQuaternion)
+        //     .round(),
+        // );
+        // console.log(
+        //   Cube.core.center.up.clone().applyQuaternion(destination).round(),
+        // );
+        // const gyroTrackingDelta = destination.clone().invert();
+        // gyroTrackingDelta.multiply(Cube.lastCubeQuaternion);
+        // const diff = new THREE.Quaternion();
+        // diff.copy(destination).multiply(gyroTrackingDelta);
+        // const vector = new THREE.Vector3();
+        // vector.fromArray(diff.toArray());
+        // console.log(vector);
+        // const euler = new THREE.Euler();
+        // euler.setFromQuaternion(diff);
+        // console.log(euler.toVector3());
+        // console.log(diff);
+        // }
       }
+
       Cube.rotateObjectScene.clear();
       Cube.rotateObjectScene = null;
+      Cube.rotatingAxes = '';
       // Cube.printPositions();
+      // Cube.setLastCubeQuaternion(destination);
     });
 };
 
@@ -44,6 +101,7 @@ const Cube = {
   cubics: [[[]]], // 큐빅 mesh 저장 어레이
   rotatingCubics: null, // 회전하는 3x3 평면 임시 저장, model
   rotatingAxes: '', // x,y,z
+  localRotatingVector: null,
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
   rotateStart: {},
   rotateInverse: '',
@@ -220,6 +278,8 @@ Cube.init = function () {
   this.addStickers(cubics);
   this.cubics = cubics;
 
+  this.printPositions();
+
   return this;
 };
 
@@ -289,6 +349,7 @@ Cube.rotateCubicsByScene = function (start, delta, value) {
         : new THREE.Vector3(0, delta.x, -delta.y),
   };
   const worldNormal = this.getWorldNormal(this.selectedMesh);
+
   // TODO: clock, counterclock 설정
   temp.setFromAxisAngle(vector[this.rotatingAxes](worldNormal), value);
   rotateObjectScene.setRotationFromQuaternion(
@@ -296,7 +357,29 @@ Cube.rotateCubicsByScene = function (start, delta, value) {
   );
 };
 
-Cube.calculateRotaingAxes = function (worldNormal, mouseDirection) {
+// TODO: x == 1 대신 (1,0,0) , (1,0,-0) 등등 고려할것
+// 그러려면 mouseDirection === 'x' 대신 Vector2(x,y) 로 저장하는게 낫겠다
+Cube.calculateWorldRotatingVector = function (worldNormal, mouseDirection) {
+  if (worldNormal.x === 1) {
+    return mouseDirection === 'x'
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(0, 0, 1);
+  }
+  if (worldNormal.y === 1) {
+    return mouseDirection === 'x'
+      ? new THREE.Vector3(0, 0, 1)
+      : new THREE.Vector3(1, 0, 0);
+  }
+  if (worldNormal.z === 1) {
+    return mouseDirection === 'x'
+      ? new THREE.Vector3(0, 1, 0)
+      : new THREE.Vector3(1, 0, 0);
+  }
+
+  return new THREE.Vector3();
+};
+
+Cube.calculateRotatingAxes = function (worldNormal, mouseDirection) {
   if (worldNormal.x === 1) {
     return mouseDirection === 'x' ? 'y' : 'z';
   }
@@ -312,14 +395,41 @@ Cube.calculateRotaingAxes = function (worldNormal, mouseDirection) {
   return null;
 };
 
+// TODO: NOW! rotatingAxes 대신 localVector 이용하기
 Cube.calculateCubicsToRotate = function (selected, cubic) {
   const worldNormal = this.getWorldNormal(selected);
-  this.rotatingAxes = this.calculateRotaingAxes(
+  this.rotatingAxes = this.calculateRotatingAxes(
+    worldNormal,
+    this.mouseDirection,
+  );
+  const worldRotatingVector = this.calculateWorldRotatingVector(
     worldNormal,
     this.mouseDirection,
   );
 
+  // TODO: 회전축 변경 -> rotatingCubics 구하느곳으로 옮기기
+  // TODO: axes 가 - 인 경우도 따로 처리
+  const localRotatingVector = this.core.center
+    .worldToLocal(worldRotatingVector)
+    .round();
+  this.localRotatingVector = localRotatingVector;
+  console.log('localRotatingVector: ');
+  console.log(this.localRotatingVector);
+
+  let tempLocalAxes = '';
+  // // this.rotatingAxes.x = local3.x;
+  if (worldRotatingVector.x === 1 || worldRotatingVector.x === -1)
+    tempLocalAxes = 'x';
+  else if (worldRotatingVector.y === 1 || worldRotatingVector.y === -1)
+    tempLocalAxes = 'y';
+  else if (worldRotatingVector.z === 1 || worldRotatingVector.z === -1)
+    tempLocalAxes = 'z';
+  // console.log(this.rotatingAxes);
+
+  this.rotatingAxes = tempLocalAxes;
   return this.filterCubicsByPlane(
+    // tempLocalAxes,
+    // cubic.position[tempLocalAxes] + 1,
     this.rotatingAxes,
     cubic.position[this.rotatingAxes] + 1,
     this.cubics,
@@ -416,6 +526,12 @@ Cube.getUserDirection = function (clickStart, clickEnd) {
   const invert =
     clickStart[this.mouseDirection] < clickEnd[this.mouseDirection];
   if (invert) direction.invert();
+  // if (!this.rotatingAxes) {
+  //   // this.rotatingAxes =
+  //   if (from === 1 || from === 2) this.rotatingAxes = 'y';
+  //   if (from === 3) this.rotatingAxes = 'z';
+  //   if (from === 0) this.rotatingAxes = 'x';
+  // }
 
   return direction;
 };

@@ -19,7 +19,6 @@ let tempSelected = null;
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-
   if (pickHelper.motioning) {
     // NOTE: 3. 씬 그래프에 선택한 평면 추가
     if (cube.selectedMesh && !cube.rotatingCubics && cube.mouseDirection) {
@@ -29,14 +28,6 @@ const followUserGesture = function (event) {
         cube.rotatingCubics,
         cube.rotateObjectScene,
       );
-    }
-
-    // 선택한 메쉬가 없다? => 방향따라 모든 평면을 씬 그래프에 추가
-    else if (!cube.selectedMesh) {
-      if (cube.mouseDirection) {
-        // NOTE: 모든 평면을 바꾼다
-      }
-      console.log('no mesh');
     }
 
     cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
@@ -95,6 +86,7 @@ const rotateToClosest = function () {
   cube.resetMouseDirection();
   cube.selectedMesh = null;
   cube.mouseDirection = '';
+  // cube.rotatingAxis = '';
 
   // pickHelper.clearPickPosition();
   // cube.selectedMesh = null;
@@ -156,7 +148,7 @@ export function init() {
   customScene.add(cube.core.center);
   initEventListners();
 
-  cube.core.center.add(axesHelper(1));
+  cube.core.center.add(axesHelper(4));
 
   animate(customCamera, customRenderer);
 }
