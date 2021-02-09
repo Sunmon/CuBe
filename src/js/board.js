@@ -84,7 +84,7 @@ const rotateToClosest = function () {
 
   pickHelper.clearPickPosition();
   cube.resetMouseDirection();
-  cube.selectedMesh = null;
+  // cube.selectedMesh = null;
   cube.mouseDirection = '';
   // cube.rotatingAxis = '';
 

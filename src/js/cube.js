@@ -23,71 +23,29 @@ const slerpObject = function (object, destination, clockwise) {
     .to(destination, 100)
     .start()
     .onComplete(() => {
+      // TODO: 안에 내용 따로 함수로 만들어야하나..? clear, rotate 이거 여따만들어야할성싶네
       if (Cube.rotatingCubics) {
         Cube.attachCubicsToCore();
+        console.log('position changed');
+        Cube.printPositions();
+        console.log('rotating layer');
+        Cube.printPositions(Cube.rotatingCubics);
+
         if (Cube.needCubicsUpdate) {
-          Cube.updateCubicsArray(clockwise);
+          Cube.tempUpdateCubicsArray(clockwise);
+          // Cube.updateCubicsArray(clockwise);
         }
+        // console.log(Cube.cubics[0][0][2].equals(Cube.rotatingCubics[0][0]));
         Cube.rotatingCubics = null;
+        Cube.printPositions();
       } else {
-        // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다
-        // if (Cube.needCubicsUpdate) {
-        //   const cubicsMatrix = [
-        //     Cube.filterCubicsByPlane(Cube.rotatingAxes, 0, Cube.cubics),
-        //     Cube.filterCubicsByPlane(Cube.rotatingAxes, 1, Cube.cubics),
-        //     Cube.filterCubicsByPlane(Cube.rotatingAxes, 2, Cube.cubics),
-        //   ];
-        //   // console.log(cubicsMatrix);
-        //   for (let k = 0; k < cubicsMatrix.length; k++) {
-        //     const newMatrix = Cube.rotateMatrix90(cubicsMatrix[k], true);
-        //     for (let i = 0; i < 3; i++) {
-        //       for (let j = 0; j < 3; j++) {
-        //         cubicsMatrix[k][i][j] = newMatrix[i][j];
-        //         cubicsMatrix[k][i][j].position.round();
-        //       }
-        //     }
-        //   }
-        //   Cube.printPositions();
-        // for (let k = 0; k < 3; k++) {
-        //   for (let i = 0; i < 3; i++) {
-        //     console.log(
-        //       cubicsMatrix[k][i][0].position,
-        //       cubicsMatrix[k][i][1].position,
-        //       cubicsMatrix[k][i][2].position,
-        //     );
-        //     console.log();
-        //   }
-        // }
-        // console.log(cubicsMatrix[0].map(row => col => col));
-        // console.log(cubicsMatrix[1]);
-        // console.log(cubicsMatrix[2]);
-        // console.log(Cube.core.center.up);
-        // console.log(
-        //   Cube.core.center.up
-        //     .clone()
-        //     .applyQuaternion(Cube.lastCubeQuaternion)
-        //     .round(),
-        // );
-        // console.log(
-        //   Cube.core.center.up.clone().applyQuaternion(destination).round(),
-        // );
-        // const gyroTrackingDelta = destination.clone().invert();
-        // gyroTrackingDelta.multiply(Cube.lastCubeQuaternion);
-        // const diff = new THREE.Quaternion();
-        // diff.copy(destination).multiply(gyroTrackingDelta);
-        // const vector = new THREE.Vector3();
-        // vector.fromArray(diff.toArray());
-        // console.log(vector);
-        // const euler = new THREE.Euler();
-        // euler.setFromQuaternion(diff);
-        // console.log(euler.toVector3());
-        // console.log(diff);
-        // }
+        // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다??
       }
 
       Cube.rotateObjectScene.clear();
       Cube.rotateObjectScene = null;
       Cube.rotatingAxes = '';
+      Cube.selectedMesh = null;
       // Cube.printPositions();
       // Cube.setLastCubeQuaternion(destination);
     });
@@ -137,18 +95,92 @@ Cube.updateCubicsArray = function (clockwise) {
   }
 };
 
-Cube.printPositions = function () {
+Cube.tempUpdateCubicsArray = function (clockwise) {
+  console.log(this.selectedMesh);
+  const newMatrix = this.rotatingCubics;
+  // x,y 바꾸기 (z=2인 부분을 우측으로 돌렸을때)
+  // FIXME: layer를 돌려봤자 원본 cubics는 영향 x
   for (let i = 0; i < 3; i++) {
-    let str = '';
-    for (let j = 0; j < 3; j++) {
-      for (let k = 0; k < 3; k++) {
-        str += `(${Math.round(this.cubics[i][j][k].position.x)},${Math.round(
-          this.cubics[i][j][k].position.y,
-        )},${Math.round(this.cubics[i][j][k].position.z)}), `;
+    for (let j = i; j < 3; j++) {
+      const temp = newMatrix[i][j];
+      newMatrix[i][j] = newMatrix[j][i];
+      newMatrix[j][i] = temp;
+
+      // [newMatrix[i][j], newMatrix[j][i]] = [
+      // newMatrix[j][i],
+      // newMatrix[i][j],
+      // ];
+
+      newMatrix[i][j].position.round();
+      newMatrix[j][i].position.round();
+
+      // TODO: cubics 원본 고치기
+      // this.cubics[i][j][1] = this.rotatingCubics[i][j];
+      // this.cubics[j][i][1] = this.rotatingCubics[j][i];
+      // clone을 하는 방법? 멈춘다
+      // const temp = new THREE.Object3D().copy(this.rotatingCubics[i][j]);
+      // this.rotatingCubics[i][j].copy(this.rotatingCubics[j][i]);
+      // console.log(temp);
+    }
+  }
+
+  // 원본 큐빅 배치 바꾸기
+  const cubic = this.selectedMesh.parent;
+  if (this.rotatingAxes === 'x') {
+    // rotatingCubics 는 selectedMesh.position['x'] +1 을 골랐음
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        this.cubics[cubic.position['x'] + 1][i][j] = newMatrix[i][j];
+      }
+    }
+  } else if (this.rotatingAxes === 'y') {
+    // rotatingCubics 는 selectedMesh.position['y'] +1 을 골랐음
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        this.cubics[i][cubic.position['y'] + 1][j] = newMatrix[i][j];
+      }
+    }
+  } else if (this.rotatingAxes === 'z') {
+    // rotatingCubics 는 selectedMesh.position['z'] +1 을 골랐음
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        // console.log(this.cubics[i][j][cubic.position['z'] + 1]);
+        this.cubics[i][j][cubic.position['z'] + 1] = newMatrix[i][j];
+      }
+    }
+  }
+
+  console.log('after swap rotating layer');
+  // console.log(this.rotatingCubics[0][2].id);
+  Cube.printPositions(Cube.rotatingCubics);
+};
+
+Cube.printPositions = function (matrix) {
+  if (!matrix) {
+    for (let i = 0; i < 3; i++) {
+      let str = '';
+      for (let j = 0; j < 3; j++) {
+        for (let k = 0; k < 3; k++) {
+          str += `(${Math.round(this.cubics[i][j][k].position.x)},${Math.round(
+            this.cubics[i][j][k].position.y,
+          )},${Math.round(this.cubics[i][j][k].position.z)}), `;
+        }
+        str += '\n';
+      }
+      console.log(str);
+    }
+  } else {
+    // 2D 매트릭스 출력
+    for (let i = 0; i < 3; i++) {
+      let str = '';
+      for (let j = 0; j < 3; j++) {
+        str += `(${Math.round(matrix[i][j].position.x)},${Math.round(
+          matrix[i][j].position.y,
+        )},${Math.round(matrix[i][j].position.z)}), `;
       }
       str += '\n';
+      console.log(str);
     }
-    console.log(str);
   }
 };
 
@@ -581,6 +613,10 @@ Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
   } else {
     this.needCubicsUpdate = false;
   }
+
+  console.log('original cube: ');
+  this.printPositions();
+
   slerpObject(object, destination, clockwise);
   this.setLastCubeQuaternion(destination);
 };
