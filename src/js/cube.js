@@ -32,11 +32,11 @@ const slerpObject = function (object, destination, clockwise) {
         Cube.printPositions(Cube.rotatingLayer);
 
         if (Cube.needCubicsUpdate) {
-          //Cube.tempUpdateCubicsArray(clockwise);
           Cube.updateCubicsArray(clockwise);
         }
         // console.log(Cube.cubics[0][0][2].equals(Cube.rotatingCubics[0][0]));
         Cube.rotatingLayer = null;
+        console.log('after full');
         Cube.printPositions();
       } else {
         // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다??
@@ -68,7 +68,7 @@ const Cube = {
 };
 
 // 3x3 매트릭스 90도 회전
-Cube.rotateMatrix90 = function (arr, clockwise) {
+Cube.createRotatedMatrix = function (arr, clockwise) {
   const ret = Array.from(Array(3), () => Array(3).fill(0));
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
@@ -84,8 +84,12 @@ Cube.rotateMatrix90 = function (arr, clockwise) {
 };
 
 // TODO: cubics 어레이 수정 작성하기
+// FIXME: 벡터를 이용하여 회전 판별하도록 변경하기 (지금처럼 단순히 x,y,z 말고)
 Cube.updateCubicsArray = function (clockwise) {
-  const newMatrix = this.rotateMatrix90(this.rotatingLayer, clockwise);
+  // TODO: rotatingAxes 대신 vector를 이용하기
+  const clock = this.rotatingAxes === 'z' ? !clockwise : clockwise;
+  const newMatrix = this.createRotatedMatrix(this.rotatingLayer, clock);
+
   // change
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
@@ -93,38 +97,9 @@ Cube.updateCubicsArray = function (clockwise) {
       this.rotatingLayer[i][j].position.round();
     }
   }
-};
-
-Cube.tempUpdateCubicsArray = function (clockwise) {
-  console.log(this.selectedMesh);
-  const newMatrix = this.rotatingLayer;
-  // x,y 바꾸기 (z=2인 부분을 우측으로 돌렸을때)
-  // FIXME: layer를 돌려봤자 원본 cubics는 영향 x
-  for (let i = 0; i < 3; i++) {
-    for (let j = i; j < 3; j++) {
-      const temp = newMatrix[i][j];
-      newMatrix[i][j] = newMatrix[j][i];
-      newMatrix[j][i] = temp;
-
-      // [newMatrix[i][j], newMatrix[j][i]] = [
-      // newMatrix[j][i],
-      // newMatrix[i][j],
-      // ];
-
-      newMatrix[i][j].position.round();
-      newMatrix[j][i].position.round();
-
-      // TODO: cubics 원본 고치기
-      // this.cubics[i][j][1] = this.rotatingCubics[i][j];
-      // this.cubics[j][i][1] = this.rotatingCubics[j][i];
-      // clone을 하는 방법? 멈춘다
-      // const temp = new THREE.Object3D().copy(this.rotatingCubics[i][j]);
-      // this.rotatingCubics[i][j].copy(this.rotatingCubics[j][i]);
-      // console.log(temp);
-    }
-  }
 
   // 원본 큐빅 배치 바꾸기
+  // z축을 회전한 경우, 새 매트릭스이기때문에 위치를 적용해줘야 함
   const cubic = this.selectedMesh.parent;
   if (this.rotatingAxes === 'x') {
     // rotatingCubics 는 selectedMesh.position['x'] +1 을 골랐음
@@ -144,15 +119,10 @@ Cube.tempUpdateCubicsArray = function (clockwise) {
     // rotatingCubics 는 selectedMesh.position['z'] +1 을 골랐음
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
-        // console.log(this.cubics[i][j][cubic.position['z'] + 1]);
         this.cubics[i][j][cubic.position['z'] + 1] = newMatrix[i][j];
       }
     }
   }
-
-  console.log('after swap rotating layer');
-  // console.log(this.rotatingCubics[0][2].id);
-  Cube.printPositions(Cube.rotatingLayer);
 };
 
 Cube.printPositions = function (matrix) {
@@ -233,8 +203,9 @@ Cube.addCubicsToCore = function (cubics) {
 };
 
 // 평면에 해당하는 3x3 벡터를 리턴
+// array는 새로 만들어지지만, 안의 객체는 레퍼런스 복사
 Cube.filterCubicsByPlane = function (plane, value, cubics) {
-  if (plane === 'x') return cubics[value];
+  if (plane === 'x') return [...cubics[value]];
   if (plane === 'y') return cubics.map(y => y[value]);
   if (plane === 'z') return cubics.map(y => y.map(z => z[value]));
 
