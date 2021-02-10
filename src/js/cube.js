@@ -24,19 +24,19 @@ const slerpObject = function (object, destination, clockwise) {
     .start()
     .onComplete(() => {
       // TODO: 안에 내용 따로 함수로 만들어야하나..? clear, rotate 이거 여따만들어야할성싶네
-      if (Cube.rotatingCubics) {
+      if (Cube.rotatingLayer) {
         Cube.attachCubicsToCore();
         console.log('position changed');
         Cube.printPositions();
         console.log('rotating layer');
-        Cube.printPositions(Cube.rotatingCubics);
+        Cube.printPositions(Cube.rotatingLayer);
 
         if (Cube.needCubicsUpdate) {
-          Cube.tempUpdateCubicsArray(clockwise);
-          // Cube.updateCubicsArray(clockwise);
+          //Cube.tempUpdateCubicsArray(clockwise);
+          Cube.updateCubicsArray(clockwise);
         }
         // console.log(Cube.cubics[0][0][2].equals(Cube.rotatingCubics[0][0]));
-        Cube.rotatingCubics = null;
+        Cube.rotatingLayer = null;
         Cube.printPositions();
       } else {
         // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다??
@@ -57,7 +57,7 @@ const Cube = {
   lastCubeWorldMatrix: new THREE.Matrix4(),
   rotateObjectScene: null, // view
   cubics: [[[]]], // 큐빅 mesh 저장 어레이
-  rotatingCubics: null, // 회전하는 3x3 평면 임시 저장, model
+  rotatingLayer: null, // 회전하는 3x3 평면 임시 저장, model
   rotatingAxes: '', // x,y,z
   localRotatingVector: null,
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
@@ -85,19 +85,19 @@ Cube.rotateMatrix90 = function (arr, clockwise) {
 
 // TODO: cubics 어레이 수정 작성하기
 Cube.updateCubicsArray = function (clockwise) {
-  const newMatrix = this.rotateMatrix90(this.rotatingCubics, clockwise);
+  const newMatrix = this.rotateMatrix90(this.rotatingLayer, clockwise);
   // change
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
-      this.rotatingCubics[i][j] = newMatrix[i][j];
-      this.rotatingCubics[i][j].position.round();
+      this.rotatingLayer[i][j] = newMatrix[i][j]; // NOTE:  이 줄이 하는일ㄹ이 뭐지??
+      this.rotatingLayer[i][j].position.round();
     }
   }
 };
 
 Cube.tempUpdateCubicsArray = function (clockwise) {
   console.log(this.selectedMesh);
-  const newMatrix = this.rotatingCubics;
+  const newMatrix = this.rotatingLayer;
   // x,y 바꾸기 (z=2인 부분을 우측으로 돌렸을때)
   // FIXME: layer를 돌려봤자 원본 cubics는 영향 x
   for (let i = 0; i < 3; i++) {
@@ -152,7 +152,7 @@ Cube.tempUpdateCubicsArray = function (clockwise) {
 
   console.log('after swap rotating layer');
   // console.log(this.rotatingCubics[0][2].id);
-  Cube.printPositions(Cube.rotatingCubics);
+  Cube.printPositions(Cube.rotatingLayer);
 };
 
 Cube.printPositions = function (matrix) {
@@ -580,12 +580,12 @@ Cube.attachCubicsToCore = function (object) {
   this.rotateObjectScene.clear();
 };
 
-Cube.calculateRotatingCubics = function (cubic) {
+Cube.calculateRotatingLayer = function (cubic) {
   return this.calculateCubicsToRotate(this.selectedMesh, cubic);
 };
 
-Cube.addRotatingCubicsToObjectScene = function (cubicsMatrix, scene) {
-  cubicsMatrix.forEach(row => {
+Cube.addRotatingCubicsToObjectScene = function (rotatingLayer, scene) {
+  rotatingLayer.forEach(row => {
     row.forEach(col => {
       scene.add(col);
     });

@@ -21,11 +21,11 @@ const followUserGesture = function (event) {
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
   if (pickHelper.motioning) {
     // NOTE: 3. 씬 그래프에 선택한 평면 추가
-    if (cube.selectedMesh && !cube.rotatingCubics && cube.mouseDirection) {
+    if (cube.selectedMesh && !cube.rotatingLayer && cube.mouseDirection) {
       const cubic = cube.selectedMesh.parent;
-      cube.rotatingCubics = cube.calculateRotatingCubics(cubic);
+      cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
       cube.addRotatingCubicsToObjectScene(
-        cube.rotatingCubics,
+        cube.rotatingLayer,
         cube.rotateObjectScene,
       );
     }
