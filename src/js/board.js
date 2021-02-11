@@ -93,10 +93,10 @@ const rotateToClosest = function () {
 };
 
 const initMouseEvents = function () {
+  window.addEventListener('mousedown', initUserGesture);
   window.addEventListener('mousemove', followUserGesture);
   window.addEventListener('mouseout', clearUserGesture);
   window.addEventListener('mouseleave', clearUserGesture);
-  window.addEventListener('mousedown', initUserGesture);
   window.addEventListener('mouseup', rotateToClosest);
 };
 
