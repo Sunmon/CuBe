@@ -66,8 +66,8 @@ const Cube = {
   rotatingLayer: null, // 회전하는 3x3 평면 임시 저장, model
   rotatingAxes: '', // x,y,z
   localRotatingAxesVector: null, //
-  mouseDirection: '', // x,y (화면 가로, 화면 세로)
-  rotateStart: {},
+  mouseDirection: '', // x,y (화면 가로, 화면 세로) TODO: 빼버리고 mouseVetor를 이용하여 계산하는 함수로 넘기기?
+  mouseVector: new THREE.Vector2(),
   rotateInverse: '',
   selectedMesh: null, // 마우스로 선택한 메쉬
   needCubicsUpdate: false,
@@ -303,18 +303,18 @@ Cube.init = function () {
   return this;
 };
 
-Cube.updateMouseDirection = function (delta = {}, THRESHOLD = 0.1) {
-  if (Math.abs(delta.x) > THRESHOLD) {
-    this.mouseDirection = 'x';
-  } else if (Math.abs(delta.y) > THRESHOLD) {
-    this.mouseDirection = 'y';
-  }
+Cube.updateMouseDirection = function (delta) {
+  this.mouseDirection = this.calculateMouseDirection(delta);
 
   return this.mouseDirection;
 };
 
 Cube.resetMouseDirection = function () {
   this.mouseDirection = '';
+};
+
+Cube.calculateMouseDirection = function (delta, THRESHOLD = 0.1) {
+  return ['x', 'y'].find(val => Math.abs(delta[val]) > THRESHOLD);
 };
 
 // TODO: rotateCore를 범용적으로 일반화시키기
@@ -544,24 +544,20 @@ Cube.rotateCubics = function (start, delta, value) {
 };
 
 Cube.rotateBody = function (start, current) {
-  // TODO: 축의 방향 바꾸기
-
-  const delta = new THREE.Vector3(start.x - current.x, start.y - current.y, 0);
-  this.rotateStart = start;
+  const delta = new THREE.Vector2(start.x - current.x, start.y - current.y);
   if (this.mouseDirection || this.updateMouseDirection(delta)) {
     const direction = this.mouseDirection;
     const weight = 10; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
-    const velocity = 0.1;
+    const value = Math.abs(delta[direction]);
+    this.mouseVector = delta;
     delta[direction] *= weight;
     delta.normalize();
-    const sign = Math.sign(delta[direction]);
-    const value = sign * (start[direction] - current[direction]);
     if (!this.selectedMesh) {
       this.rotateCore(start, delta, value);
-      // this.rotateCoreByWorldMatrix(start, delta, value);
     } else {
       // 하나씩 회전
       // this.rotateCubics(start, delta, value);
+      const velocity = 0.1;
       this.rotateCubicsByScene(start, delta, value + velocity);
     }
   }

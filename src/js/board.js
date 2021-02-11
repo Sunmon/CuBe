@@ -19,23 +19,24 @@ const tempSelected = null;
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  if (pickHelper.motioning) {
-    // NOTE: 3. 씬 그래프에 선택한 평면 추가
-    // TODO: roatatingLayer = [[]] 로 초기화하기
-    if (cube.selectedMesh && !cube.rotatingLayer && cube.mouseDirection) {
-      const cubic = cube.selectedMesh.parent;
-      const objectScene = customScene.getObjectByName('objectScene');
-      cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
-      cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
-    }
-
-    cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
+  // console.log(pickHelper.pickPosition)
+  if (!pickHelper.motioning) return;
+  // TODO: roatatingLayer = [[]] 로 초기화하기
+  if (cube.selectedMesh && !cube.rotatingLayer && cube.mouseDirection) {
+    const cubic = cube.selectedMesh.parent;
+    const objectScene = customScene.getObjectByName('objectScene');
+    cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
+    cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
   }
+
+  cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
 };
 
 const clearUserGesture = function () {
   pickHelper.clearPickPosition();
-  cube.selectedMesh = null;
+  cube.resetMouseDirection();
+  // cube.mouseDirection = '';
+  // cube.selectedMesh = null;
 };
 
 const initUserGesture = function (event) {
@@ -50,26 +51,19 @@ const initUserGesture = function (event) {
   cube.lastCubeQuaternion.copy(cube.core.center.quaternion);
 };
 
+const alreadyClear = function () {
+  return !pickHelper.motioning;
+};
+
 const rotateToClosest = function () {
   const clickStart = { ...pickHelper.pickStartedPosition };
   const clickEnd = { ...pickHelper.pickPosition };
-  // NOTE: 5. tempScene에 있던 큐빅을 다시 cube로 돌려놓는다
   if (!cube.selectedMesh) {
     cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
   } else {
     const objectScene = customScene.getObjectByName('objectScene');
     cube.slerp(clickStart, clickEnd, objectScene); // 특정 층만 회전
-    // cube.slerp(clickStart, clickEnd, cube.rotateObjectScene); // 특정 층만 회전
   }
-
-  pickHelper.clearPickPosition();
-  cube.resetMouseDirection();
-  // cube.selectedMesh = null;
-  cube.mouseDirection = '';
-  // cube.rotatingAxis = '';
-
-  // pickHelper.clearPickPosition();
-  // cube.selectedMesh = null;
 };
 
 const createObjectScene = function (object) {
@@ -85,14 +79,22 @@ const handleMouseDown = function (event) {
   customScene.add(createObjectScene(cube.core.center));
 };
 
-const handleMouseMove = function (event) {};
+const handleMouseMove = function (event) {
+  followUserGesture(event);
+};
+
+const handleMouseUp = function (event) {
+  if (alreadyClear()) return;
+  rotateToClosest(event);
+  clearUserGesture();
+};
 
 const initMouseEvents = function () {
   window.addEventListener('mousedown', handleMouseDown);
-  window.addEventListener('mousemove', followUserGesture);
-  window.addEventListener('mouseout', clearUserGesture);
-  window.addEventListener('mouseleave', clearUserGesture);
-  window.addEventListener('mouseup', rotateToClosest);
+  window.addEventListener('mousemove', handleMouseMove);
+  window.addEventListener('mouseout', handleMouseUp);
+  window.addEventListener('mouseleave', handleMouseUp);
+  window.addEventListener('mouseup', handleMouseUp);
 };
 
 const initMobileEvents = function () {
