@@ -41,10 +41,12 @@ const clearUserGesture = function () {
 
 const initUserGesture = function (event) {
   event.preventDefault(); // 스크롤 이벤트 방지
-  const gesture = (event.touches && event.touches[0]) || event;
-  pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  cube.selectedMesh = pickHelper.getClosestSticker(customScene)?.object;
 
+  pickHelper.setPickPosition(event, customRenderer.getCanvas());
+  cube.selectedMesh = pickHelper.getClosestSticker(
+    customScene,
+    customCamera.getCamera(),
+  )?.object;
   console.log('origin');
   cube.printPositions();
 
@@ -98,9 +100,9 @@ const initMouseEvents = function () {
 };
 
 const initMobileEvents = function () {
-  window.addEventListener('touchstart', initUserGesture, { passive: false });
-  window.addEventListener('touchmove', followUserGesture);
-  window.addEventListener('touchend', rotateToClosest);
+  window.addEventListener('touchstart', handleMouseDown, { passive: false });
+  window.addEventListener('touchmove', handleMouseMove);
+  window.addEventListener('touchend', handleMouseUp);
 };
 
 const initEventListners = function () {
