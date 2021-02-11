@@ -14,20 +14,19 @@ const customRenderer = CustomRenderer.init();
 const customScene = CustomScene.init();
 const cube = Cube.init();
 const pickHelper = PickHelper.init();
-let tempSelected = null;
+const tempSelected = null;
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
   if (pickHelper.motioning) {
     // NOTE: 3. 씬 그래프에 선택한 평면 추가
+    // TODO: roatatingLayer = [[]] 로 초기화하기
     if (cube.selectedMesh && !cube.rotatingLayer && cube.mouseDirection) {
       const cubic = cube.selectedMesh.parent;
+      const objectScene = customScene.getObjectByName('objectScene');
       cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
-      cube.addRotatingCubicsToObjectScene(
-        cube.rotatingLayer,
-        cube.rotateObjectScene,
-      );
+      cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
     }
 
     cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
@@ -43,32 +42,12 @@ const initUserGesture = function (event) {
   event.preventDefault(); // 스크롤 이벤트 방지
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  // tempSelected = pickHelper.getCurrentIntersect(customScene);
-  tempSelected = pickHelper.getClosestSticker(customScene);
-  cube.selectedMesh = tempSelected?.object;
-
-  if (cube.selectedMesh) {
-    console.log('worldNormal: ');
-    console.log(cube.getWorldNormal(cube.selectedMesh));
-  } else {
-    console.log('cube.selectedMesh === undefined');
-  }
+  cube.selectedMesh = pickHelper.getClosestSticker(customScene)?.object;
 
   console.log('origin');
   cube.printPositions();
 
-  // cube core의 마지막 매트릭스 저장
-  cube.lastCubeWorldMatrix.copy(cube.core.center.matrixWorld); // TODO: 안쓰면 삭제
   cube.lastCubeQuaternion.copy(cube.core.center.quaternion);
-
-  // NOTE: 1. 큐브를 회전할 씬 그래프 생성
-  const tempScene = new THREE.Object3D();
-  tempScene.applyQuaternion(cube.core.center.quaternion);
-  tempScene.name = 'tempScene';
-  cube.rotateObjectScene = tempScene;
-
-  // NOTE: 2. 전체 씬에 씬 그래프 추가
-  customScene.add(tempScene);
 };
 
 const rotateToClosest = function () {
@@ -78,8 +57,9 @@ const rotateToClosest = function () {
   if (!cube.selectedMesh) {
     cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
   } else {
-    cube.slerp(clickStart, clickEnd, cube.rotateObjectScene); // 특정 층만 회전
-    // const cubic = cube.tempScene.0children[0];
+    const objectScene = customScene.getObjectByName('objectScene');
+    cube.slerp(clickStart, clickEnd, objectScene); // 특정 층만 회전
+    // cube.slerp(clickStart, clickEnd, cube.rotateObjectScene); // 특정 층만 회전
   }
 
   pickHelper.clearPickPosition();
@@ -92,8 +72,23 @@ const rotateToClosest = function () {
   // cube.selectedMesh = null;
 };
 
+const createObjectScene = function (object) {
+  const objectScene = new THREE.Object3D();
+  objectScene.applyQuaternion(object.quaternion);
+  objectScene.name = 'objectScene';
+
+  return objectScene;
+};
+
+const handleMouseDown = function (event) {
+  initUserGesture(event);
+  customScene.add(createObjectScene(cube.core.center));
+};
+
+const handleMouseMove = function (event) {};
+
 const initMouseEvents = function () {
-  window.addEventListener('mousedown', initUserGesture);
+  window.addEventListener('mousedown', handleMouseDown);
   window.addEventListener('mousemove', followUserGesture);
   window.addEventListener('mouseout', clearUserGesture);
   window.addEventListener('mouseleave', clearUserGesture);

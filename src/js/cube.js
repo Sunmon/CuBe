@@ -36,35 +36,47 @@ const slerpObject = function (object, destination, clockwise) {
         }
         // console.log(Cube.cubics[0][0][2].equals(Cube.rotatingCubics[0][0]));
         Cube.rotatingLayer = null;
+        // Cube.rotatingLayer = [];
         console.log('after full');
         Cube.printPositions();
       } else {
         // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다??
       }
 
-      Cube.rotateObjectScene.clear();
-      Cube.rotateObjectScene = null;
+      const scene = Cube.core.center.parent;
+      const objectScene = scene.getObjectByName('objectScene');
+      // Cube.rotateObjectScene.clear();
+      // Cube.rotateObjectScene = null;
+      objectScene.clear();
+      scene.remove(objectScene);
+      // objectScene = null;
+
       Cube.rotatingAxes = '';
       Cube.selectedMesh = null;
       // Cube.printPositions();
       // Cube.setLastCubeQuaternion(destination);
     });
 };
-
+// TODO: 기본값 설정하기
 // namespace
 const Cube = {
   lastCubeQuaternion: new THREE.Quaternion(),
-  lastCubeWorldMatrix: new THREE.Matrix4(),
-  rotateObjectScene: null, // view
-  cubics: [[[]]], // 큐빅 mesh 저장 어레이
+  // lastCubeWorldMatrix: new THREE.Matrix4(),
+  cubics: [[[]]], // 큐빅 배치 저장 (model). 항상 일정하게 유지해야함
   rotatingLayer: null, // 회전하는 3x3 평면 임시 저장, model
   rotatingAxes: '', // x,y,z
-  localRotatingVector: null,
+  localRotatingAxesVector: null, //
   mouseDirection: '', // x,y (화면 가로, 화면 세로)
   rotateStart: {},
   rotateInverse: '',
   selectedMesh: null, // 마우스로 선택한 메쉬
   needCubicsUpdate: false,
+};
+
+Cube.getObjectScene = function () {
+  const scene = this.core.center.parent;
+
+  return scene.getObjectByName('objectScene');
 };
 
 // 3x3 매트릭스 90도 회전
@@ -105,21 +117,21 @@ Cube.updateCubicsArray = function (clockwise) {
     // rotatingCubics 는 selectedMesh.position['x'] +1 을 골랐음
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
-        this.cubics[cubic.position['x'] + 1][i][j] = newMatrix[i][j];
+        this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
       }
     }
   } else if (this.rotatingAxes === 'y') {
     // rotatingCubics 는 selectedMesh.position['y'] +1 을 골랐음
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
-        this.cubics[i][cubic.position['y'] + 1][j] = newMatrix[i][j];
+        this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
       }
     }
   } else if (this.rotatingAxes === 'z') {
     // rotatingCubics 는 selectedMesh.position['z'] +1 을 골랐음
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
-        this.cubics[i][j][cubic.position['z'] + 1] = newMatrix[i][j];
+        this.cubics[i][j][cubic.position.z + 1] = newMatrix[i][j];
       }
     }
   }
@@ -249,6 +261,7 @@ Cube.addStickers = function (cubics) {
     plane.forEach(row => {
       row.forEach(col => {
         const sticker = this.createPlane(colors[i]);
+        sticker.name = 'sticker';
         this.translateObject(dir, ((val - 1) * CUBIC_SIZE) / 2, sticker);
         this.rotateObject(rotateDir[i], rotateDist[i], sticker);
         col.add(sticker);
@@ -263,6 +276,9 @@ Cube.getWorldNormal = function (object) {
   normalMatrix.getNormalMatrix(object.matrixWorld);
   worldNormal.applyMatrix3(normalMatrix).normalize().round();
 
+  console.log(
+    `worldNormal : ${worldNormal.x}, ${worldNormal.y}, ${worldNormal.z}`,
+  );
   return worldNormal;
 };
 
@@ -270,6 +286,7 @@ Cube.getWorldNormal = function (object) {
 Cube.init = function () {
   // addObject(this.core.center, this.core.zAxis);
   // addObject(this.core.center, this.core.xAxis);
+  this.core.center.name = 'core';
   addObject(this.core.center, this.core.yAxis);
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
   // 그냥 line 벡터 알아내서 add한다음에 lookAt하면된다
@@ -341,21 +358,28 @@ Cube.rotateCore = function (start, delta, value) {
 Cube.rotateCubicsByScene = function (start, delta, value) {
   if (!this.rotatingAxes) return;
   // NOTE: 4. 씬 그래프 회전
-  const { rotateObjectScene } = this;
+  const objectScene = this.getObjectScene();
+
   const temp = new THREE.Quaternion();
+  // TODO: 이 vector 구하는것 수정하기...
   const vector = {
+    // 이동량 정할 기준 벡터
     x: () => new THREE.Vector3(delta.y, delta.x, 0),
     y: () => new THREE.Vector3(delta.y, -delta.x, 0),
     z: worldNormal =>
       worldNormal.y === 1
         ? new THREE.Vector3(0, delta.y, delta.x)
         : new THREE.Vector3(0, delta.x, -delta.y),
+    // : new THREE.Vector3(delta.y, delta.x, 0),
   };
   const worldNormal = this.getWorldNormal(this.selectedMesh);
-
+  // console.log('localNormal');
+  const localNormal = this.core.center.worldToLocal(worldNormal).round();
+  console.log(`this.rotatingAxes : ${this.rotatingAxes}`);
   // TODO: clock, counterclock 설정
-  temp.setFromAxisAngle(vector[this.rotatingAxes](worldNormal), value);
-  rotateObjectScene.setRotationFromQuaternion(
+  // temp.setFromAxisAngle(vector[this.rotatingAxes](worldNormal), value);
+  temp.setFromAxisAngle(vector[this.rotatingAxes](localNormal), value);
+  objectScene.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
 };
@@ -382,6 +406,7 @@ Cube.calculateWorldRotatingVector = function (worldNormal, mouseDirection) {
   return new THREE.Vector3();
 };
 
+// NOTE: 나중에 localRotating만 있어도 되면 바꿔버리기
 Cube.calculateRotatingAxes = function (worldNormal, mouseDirection) {
   if (worldNormal.x === 1) {
     return mouseDirection === 'x' ? 'y' : 'z';
@@ -398,13 +423,22 @@ Cube.calculateRotatingAxes = function (worldNormal, mouseDirection) {
   return null;
 };
 
-// TODO: NOW! rotatingAxes 대신 localVector 이용하기
-Cube.calculateCubicsToRotate = function (selected, cubic) {
+Cube.calculateLocalRotatingAxes = function (selected) {
   const worldNormal = this.getWorldNormal(selected);
-  this.rotatingAxes = this.calculateRotatingAxes(
+  const worldRotatingVector = this.calculateWorldRotatingVector(
     worldNormal,
     this.mouseDirection,
   );
+  const localRotatingAxesVector = this.core.center
+    .worldToLocal(worldRotatingVector)
+    .round();
+
+  return localRotatingAxesVector;
+};
+
+// TODO: NOW! rotatingAxes 대신 localVector 이용하기
+Cube.calculateCubicsToRotate = function (selected, cubic) {
+  const worldNormal = this.getWorldNormal(selected);
   const worldRotatingVector = this.calculateWorldRotatingVector(
     worldNormal,
     this.mouseDirection,
@@ -412,24 +446,48 @@ Cube.calculateCubicsToRotate = function (selected, cubic) {
 
   // TODO: 회전축 변경 -> rotatingCubics 구하느곳으로 옮기기
   // TODO: axes 가 - 인 경우도 따로 처리
-  const localRotatingVector = this.core.center
-    .worldToLocal(worldRotatingVector)
-    .round();
-  this.localRotatingVector = localRotatingVector;
-  console.log('localRotatingVector: ');
-  console.log(this.localRotatingVector);
+  // const localRotatingAxesVector = this.core.center
+  //   .worldToLocal(worldRotatingVector)
+  //   .round();
+  // this.localRotatingAxesVector = localRotatingAxesVector;
+  this.localRotatingAxesVector = this.calculateLocalRotatingAxes(selected);
+
+  console.log('localRotatingAxesVector: ');
+  console.log(this.localRotatingAxesVector);
+
+  console.log('worldRotatingAxesVector: ');
+  console.log(worldRotatingVector);
+
+  console.log('worldNormal');
+  console.log(worldNormal);
+
+  console.log('localNormal');
+
+  const localNormal = this.core.center.worldToLocal(worldNormal).round();
+  console.log(localNormal);
 
   let tempLocalAxes = '';
-  // // this.rotatingAxes.x = local3.x;
-  if (worldRotatingVector.x === 1 || worldRotatingVector.x === -1)
+  // TODO: roatatingAxes 수정
+  if (
+    this.localRotatingAxesVector.x === 1 ||
+    this.localRotatingAxesVector.x === -1
+  )
     tempLocalAxes = 'x';
-  else if (worldRotatingVector.y === 1 || worldRotatingVector.y === -1)
+  else if (
+    this.localRotatingAxesVector.y === 1 ||
+    this.localRotatingAxesVector.y === -1
+  )
     tempLocalAxes = 'y';
-  else if (worldRotatingVector.z === 1 || worldRotatingVector.z === -1)
+  else if (
+    this.localRotatingAxesVector.z === 1 ||
+    this.localRotatingAxesVector.z === -1
+  )
     tempLocalAxes = 'z';
-  // console.log(this.rotatingAxes);
 
   this.rotatingAxes = tempLocalAxes;
+  console.log('cubic.position');
+  console.log(cubic.position);
+  // console.log(this.rotatingAxes);
   return this.filterCubicsByPlane(
     // tempLocalAxes,
     // cubic.position[tempLocalAxes] + 1,
@@ -539,26 +597,23 @@ Cube.getUserDirection = function (clickStart, clickEnd) {
   return direction;
 };
 
-// tempScene -> cube로 옮기는 임시 테스트 함수
-Cube.attachCubicsToCore = function (object) {
-  const cubics = this.rotateObjectScene.children;
-  if (cubics.length) {
-    for (let i = cubics.length - 1; i >= 0; i--) {
-      this.core.center.attach(cubics[i]);
-    }
+Cube.attachCubicsToCore = function () {
+  const cubics = this.getObjectScene().children;
+  if (!cubics.length) return;
+  for (let i = cubics.length - 1; i >= 0; i--) {
+    this.core.center.attach(cubics[i]);
   }
-
-  this.rotateObjectScene.clear();
 };
 
 Cube.calculateRotatingLayer = function (cubic) {
   return this.calculateCubicsToRotate(this.selectedMesh, cubic);
 };
 
-Cube.addRotatingCubicsToObjectScene = function (rotatingLayer, scene) {
+Cube.addCubicsToObjectScene = function (rotatingLayer, scene) {
   rotatingLayer.forEach(row => {
     row.forEach(col => {
       scene.add(col);
+      // scene.attach(col);
     });
   });
 
