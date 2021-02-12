@@ -3,6 +3,7 @@ import CustomMesh from './mesh.js';
 import * as TWEEN from '../../lib/tween.esm.js';
 import * as THREE from '../../lib/three.module.js';
 import { CUBE_SIZE, CUBIC_SIZE } from '../common/constants.js';
+import { isEmpty } from '../common/common.js';
 
 const addObject = function (target, obj) {
   target.add(obj);
@@ -24,7 +25,8 @@ const slerpObject = function (object, destination, clockwise) {
     .start()
     .onComplete(() => {
       // TODO: 안에 내용 따로 함수로 만들어야하나..? clear, rotate 이거 여따만들어야할성싶네
-      if (Cube.rotatingLayer) {
+      if (!isEmpty(Cube.rotatingLayer)) {
+        // if (isEmpty(Cube.rotatingLayer)) {
         Cube.attachCubicsToCore();
         console.log('position changed');
         Cube.printPositions();
@@ -35,8 +37,7 @@ const slerpObject = function (object, destination, clockwise) {
           Cube.updateCubicsArray(clockwise);
         }
         // console.log(Cube.cubics[0][0][2].equals(Cube.rotatingCubics[0][0]));
-        Cube.rotatingLayer = null;
-        // Cube.rotatingLayer = [];
+        Cube.rotatingLayer = [[]];
         console.log('after full');
         Cube.printPositions();
       } else {
@@ -62,11 +63,10 @@ const slerpObject = function (object, destination, clockwise) {
 // namespace
 const Cube = {
   lastCubeQuaternion: new THREE.Quaternion(),
-  // lastCubeWorldMatrix: new THREE.Matrix4(),
-  cubics: [[[]]], // 큐빅 배치 저장 (model). 항상 일정하게 유지해야함
-  rotatingLayer: null, // 회전하는 3x3 평면 임시 저장, model
-  rotatingAxes: '', // x,y,z
-  localRotatingAxesVector: new THREE.Vector3(), //
+  cubics: [[[]]], // 큐빅 배치 저장 (model). 항상 값을 일정하게 유지해야 한다
+  rotatingLayer: [[]], // 회전할 평면에 속하는 큐빅들을 임시로 저장하는 배열
+  rotatingAxes: '', // cubic.core의 로컬 회전축. ('x','y','z')
+  localRotatingAxesVector: new THREE.Vector3(), // TODO: 쓸일없어보이는데?
   mouseDirection: '', // x,y (화면 가로, 화면 세로) TODO: 빼버리고 mouseVetor를 이용하여 계산하는 함수로 넘기기?
   mouseVector: new THREE.Vector2(),
   rotateInverse: '',

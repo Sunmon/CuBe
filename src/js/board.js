@@ -7,22 +7,19 @@ import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
 import { PickHelper } from './motion.js';
-import { axesHelper } from '../common/common.js';
+import { axesHelper, isEmpty } from '../common/common.js';
 
 const customCamera = CustomCamera.init();
 const customRenderer = CustomRenderer.init();
 const customScene = CustomScene.init();
 const cube = Cube.init();
 const pickHelper = PickHelper.init();
-const tempSelected = null;
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  // console.log(pickHelper.pickPosition)
   if (!pickHelper.motioning) return;
-  // TODO: roatatingLayer = [[]] 로 초기화하기
-  if (cube.selectedMesh && !cube.rotatingLayer && cube.mouseDirection) {
+  if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
     const cubic = cube.selectedMesh.parent;
     const objectScene = customScene.getObjectByName('objectScene');
     cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
@@ -47,8 +44,8 @@ const initUserGesture = function (event) {
     customScene,
     customCamera.getCamera(),
   )?.object;
-  console.log('origin');
-  cube.printPositions();
+  // console.log('origin');
+  // cube.printPositions();
 
   cube.lastCubeQuaternion.copy(cube.core.center.quaternion);
 };
