@@ -52,6 +52,7 @@ const slerpObject = function (object, destination, clockwise) {
       // objectScene = null;
 
       Cube.rotatingAxes = '';
+      Cube.localRotatingAxesVector = null;
       Cube.selectedMesh = null;
       // Cube.printPositions();
       // Cube.setLastCubeQuaternion(destination);
@@ -65,7 +66,7 @@ const Cube = {
   cubics: [[[]]], // 큐빅 배치 저장 (model). 항상 일정하게 유지해야함
   rotatingLayer: null, // 회전하는 3x3 평면 임시 저장, model
   rotatingAxes: '', // x,y,z
-  localRotatingAxesVector: null, //
+  localRotatingAxesVector: new THREE.Vector3(), //
   mouseDirection: '', // x,y (화면 가로, 화면 세로) TODO: 빼버리고 mouseVetor를 이용하여 계산하는 함수로 넘기기?
   mouseVector: new THREE.Vector2(),
   rotateInverse: '',
@@ -331,25 +332,6 @@ Cube.rotateCore = function (start, delta, value) {
         : new THREE.Vector3(delta.y, delta.x, 0),
   };
   temp.setFromAxisAngle(vector[this.mouseDirection](start), value);
-  // if (this.mouseDirection === 'x') {
-  //   if (start.y > 0) {
-  //     // (x,y,z) -> (y,x,z)
-  //     temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-  //   } else {
-  //     // (x,y,z) -> (y,-x,z)
-  //     temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
-  //   }
-  // } else if (this.mouseDirection === 'y') {
-  //   // (x,y,z) -> (z, x, -y)
-  //   if (start.x > 0) {
-  //     temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
-  //     // NOTE: 09. TODO: 선택면(윗면, 옆면 등)에 따라서 회전을 다르게 하거나
-  //     // NOTE: 10. TODO: or 회전시킬때 매트릭스를 돌려버리기
-  //   } else {
-  //     // (x,y,z) -> (y,x,z)
-  //     temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-  //   }
-  // }
   this.core.center.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
@@ -357,35 +339,28 @@ Cube.rotateCore = function (start, delta, value) {
 
 Cube.rotateCubicsByScene = function (start, delta, value) {
   if (!this.rotatingAxes) return;
-  // NOTE: 4. 씬 그래프 회전
-  const objectScene = this.getObjectScene();
-
-  const temp = new THREE.Quaternion();
-  // TODO: 이 vector 구하는것 수정하기...
+  const rotatingVector = this.localRotatingAxesVector;
+  const worldVector = this.core.center
+    .localToWorld(rotatingVector.clone())
+    .round();
+  const v = worldVector.x === 1 ? 'x' : worldVector.y === 1 ? 'y' : 'z';
+  const vertical = new THREE.Vector3(0, -delta.x, -delta.y);
+  const horizontal = new THREE.Vector3(delta.y, -delta.x, 0);
   const vector = {
-    // 이동량 정할 기준 벡터
-    x: () => new THREE.Vector3(delta.y, delta.x, 0),
-    y: () => new THREE.Vector3(delta.y, -delta.x, 0),
-    z: worldNormal =>
-      worldNormal.y === 1
-        ? new THREE.Vector3(0, delta.y, delta.x)
-        : new THREE.Vector3(0, delta.x, -delta.y),
-    // : new THREE.Vector3(delta.y, delta.x, 0),
+    x: () => horizontal,
+    y: localRotate => (localRotate.y === 1 ? vertical : horizontal),
+    z: () => vertical,
   };
-  const worldNormal = this.getWorldNormal(this.selectedMesh);
-  // console.log('localNormal');
-  const localNormal = this.core.center.worldToLocal(worldNormal).round();
-  console.log(`this.rotatingAxes : ${this.rotatingAxes}`);
-  // TODO: clock, counterclock 설정
-  // temp.setFromAxisAngle(vector[this.rotatingAxes](worldNormal), value);
-  temp.setFromAxisAngle(vector[this.rotatingAxes](localNormal), value);
-  objectScene.setRotationFromQuaternion(
+
+  const temp = new THREE.Quaternion().setFromAxisAngle(
+    vector[v](rotatingVector),
+    value,
+  );
+  this.getObjectScene().setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
 };
 
-// TODO: x == 1 대신 (1,0,0) , (1,0,-0) 등등 고려할것
-// 그러려면 mouseDirection === 'x' 대신 Vector2(x,y) 로 저장하는게 낫겠다
 Cube.calculateWorldRotatingVector = function (worldNormal, mouseDirection) {
   if (worldNormal.x === 1) {
     return mouseDirection === 'x'
@@ -413,7 +388,6 @@ Cube.calculateRotatingAxes = function (worldNormal, mouseDirection) {
   }
   if (worldNormal.y === 1) {
     return mouseDirection === 'x' ? 'z' : 'x';
-    // return mouseDirection === 'x' ? 'x' : 'z';
   }
 
   if (worldNormal.z === 1) {
