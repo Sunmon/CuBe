@@ -44,10 +44,7 @@ const initUserGesture = function (event) {
     customScene,
     customCamera.getCamera(),
   )?.object;
-  // console.log('origin');
-  // cube.printPositions();
-
-  cube.lastCubeQuaternion.copy(cube.core.center.quaternion);
+  cube.lastCubeQuaternion.copy(cube.core.quaternion);
 };
 
 const alreadyClear = function () {
@@ -75,7 +72,7 @@ const createObjectScene = function (object) {
 
 const handleMouseDown = function (event) {
   initUserGesture(event);
-  customScene.add(createObjectScene(cube.core.center));
+  customScene.add(createObjectScene(cube.core));
 };
 
 const handleMouseMove = function (event) {
@@ -134,17 +131,17 @@ const initTransformControls = function () {
   );
   control.setMode('rotate');
   control.addEventListener('dragging-changed', function (event) {});
-  control.attach(cube.core.center);
+  control.attach(cube.core);
 
   return control;
 };
 
 // eslint-disable-next-line import/prefer-default-export
 export function init() {
-  customScene.add(cube.core.center);
+  customScene.add(cube.core);
   initEventListners();
 
-  cube.core.center.add(axesHelper(4));
+  cube.core.add(axesHelper(4));
 
   animate(customCamera, customRenderer);
 }

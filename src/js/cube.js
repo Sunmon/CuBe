@@ -44,7 +44,7 @@ const slerpObject = function (object, destination, clockwise) {
         // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다??
       }
 
-      const scene = Cube.core.center.parent;
+      const scene = Cube.core.parent;
       const objectScene = scene.getObjectByName('objectScene');
       // Cube.rotateObjectScene.clear();
       // Cube.rotateObjectScene = null;
@@ -52,8 +52,8 @@ const slerpObject = function (object, destination, clockwise) {
       scene.remove(objectScene);
       // objectScene = null;
 
-      Cube.rotatingAxes = '';
-      Cube.localRotatingAxesVector = null;
+      Cube.rotatingAxesChar = '';
+      Cube.rotatingAxes = null;
       Cube.selectedMesh = null;
       // Cube.printPositions();
       // Cube.setLastCubeQuaternion(destination);
@@ -62,20 +62,20 @@ const slerpObject = function (object, destination, clockwise) {
 // TODO: 기본값 설정하기
 // namespace
 const Cube = {
+  core: new THREE.Object3D(),
   lastCubeQuaternion: new THREE.Quaternion(),
   cubics: [[[]]], // 큐빅 배치 저장 (model). 항상 값을 일정하게 유지해야 한다
   rotatingLayer: [[]], // 회전할 평면에 속하는 큐빅들을 임시로 저장하는 배열
-  rotatingAxes: '', // cubic.core의 로컬 회전축. ('x','y','z')
-  localRotatingAxesVector: new THREE.Vector3(), // TODO: 쓸일없어보이는데?
+  rotatingAxesChar: '', // cubic.core의 로컬 회전축. ('x','y','z')
+  rotatingAxes: new THREE.Vector3(), // rotatingLayer의 local 회전하는 축
   mouseDirection: '', // x,y (화면 가로, 화면 세로) TODO: 빼버리고 mouseVetor를 이용하여 계산하는 함수로 넘기기?
-  mouseVector: new THREE.Vector2(),
   rotateInverse: '',
   selectedMesh: null, // 마우스로 선택한 메쉬
   needCubicsUpdate: false,
 };
 
 Cube.getObjectScene = function () {
-  const scene = this.core.center.parent;
+  const scene = this.core.parent;
 
   return scene.getObjectByName('objectScene');
 };
@@ -100,7 +100,7 @@ Cube.createRotatedMatrix = function (arr, clockwise) {
 // FIXME: 벡터를 이용하여 회전 판별하도록 변경하기 (지금처럼 단순히 x,y,z 말고)
 Cube.updateCubicsArray = function (clockwise) {
   // TODO: rotatingAxes 대신 vector를 이용하기
-  const clock = this.rotatingAxes === 'z' ? !clockwise : clockwise;
+  const clock = this.rotatingAxesChar === 'z' ? !clockwise : clockwise;
   const newMatrix = this.createRotatedMatrix(this.rotatingLayer, clock);
 
   // change
@@ -114,21 +114,21 @@ Cube.updateCubicsArray = function (clockwise) {
   // 원본 큐빅 배치 바꾸기
   // z축을 회전한 경우, 새 매트릭스이기때문에 위치를 적용해줘야 함
   const cubic = this.selectedMesh.parent;
-  if (this.rotatingAxes === 'x') {
+  if (this.rotatingAxesChar === 'x') {
     // rotatingCubics 는 selectedMesh.position['x'] +1 을 골랐음
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
         this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
       }
     }
-  } else if (this.rotatingAxes === 'y') {
+  } else if (this.rotatingAxesChar === 'y') {
     // rotatingCubics 는 selectedMesh.position['y'] +1 을 골랐음
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
         this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
       }
     }
-  } else if (this.rotatingAxes === 'z') {
+  } else if (this.rotatingAxesChar === 'z') {
     // rotatingCubics 는 selectedMesh.position['z'] +1 을 골랐음
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
@@ -167,12 +167,14 @@ Cube.printPositions = function (matrix) {
   }
 };
 
-Cube.core = {
-  center: new THREE.Object3D(),
-  xAxis: CustomMesh.createLine([-CUBE_SIZE, 0, 0], [CUBE_SIZE, 0, 0]),
-  yAxis: CustomMesh.createLine([0, -CUBE_SIZE / 2, 0], [0, CUBE_SIZE / 2, 0]),
-  zAxis: CustomMesh.createLine([0, 0, -CUBE_SIZE / 2], [0, 0, CUBE_SIZE / 2]),
-};
+// Cube.core = {
+//   center: new THREE.Object3D(),
+//   xAxis: CustomMesh.createLine([-CUBE_SIZE, 0, 0], [CUBE_SIZE, 0, 0]),
+//   yAxis: CustomMesh.createLine([0, -CUBE_SIZE / 2, 0], [0, CUBE_SIZE / 2, 0]),
+//   zAxis: CustomMesh.createLine([0, 0, -CUBE_SIZE / 2], [0, 0, CUBE_SIZE / 2]),
+// };
+
+// Cube.core = new THREE.Object3D();
 
 Cube.createPlane = function (color) {
   return CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
@@ -208,7 +210,7 @@ Cube.addCubicsToCore = function (cubics) {
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
       for (let k = 0; k < 3; k++) {
-        this.core.center.add(cubics[i][j][k]);
+        this.core.add(cubics[i][j][k]);
         // this.core.center.attach(cubics[i][j][k]);
       }
     }
@@ -285,10 +287,7 @@ Cube.getWorldNormal = function (object) {
 
 // Z -> X -> Y 순으로 회전 (오일러 회전과 순서를 맞춤)
 Cube.init = function () {
-  // addObject(this.core.center, this.core.zAxis);
-  // addObject(this.core.center, this.core.xAxis);
-  this.core.center.name = 'core';
-  addObject(this.core.center, this.core.yAxis);
+  this.core.name = 'core';
   // TODO: line으로부터방향 알아내서 testPlane에 법선으로 적용하기
   // 그냥 line 벡터 알아내서 add한다음에 lookAt하면된다
 
@@ -318,44 +317,38 @@ Cube.calculateMouseDirection = function (delta, THRESHOLD = 0.1) {
   return ['x', 'y'].find(val => Math.abs(delta[val]) > THRESHOLD);
 };
 
-// TODO: rotateCore를 범용적으로 일반화시키기
 Cube.rotateCore = function (start, delta, value) {
-  const temp = new THREE.Quaternion();
   const vector = {
-    x: start =>
+    x: () =>
       start.y > 0
         ? new THREE.Vector3(delta.y, delta.x, 0)
         : new THREE.Vector3(delta.y, -delta.x, 0),
-    y: start =>
+    y: () =>
       start.x > 0
         ? new THREE.Vector3(0, delta.x, -delta.y)
         : new THREE.Vector3(delta.y, delta.x, 0),
   };
+  const temp = new THREE.Quaternion();
   temp.setFromAxisAngle(vector[this.mouseDirection](start), value);
-  this.core.center.setRotationFromQuaternion(
+  this.core.setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
 };
 
-Cube.rotateCubicsByScene = function (start, delta, value) {
-  if (!this.rotatingAxes) return;
-  const rotatingVector = this.localRotatingAxesVector;
-  const worldVector = this.core.center
-    .localToWorld(rotatingVector.clone())
-    .round();
-  const v = worldVector.x === 1 ? 'x' : worldVector.y === 1 ? 'y' : 'z';
+Cube.rotateCubicsByScene = function (delta, value) {
+  if (!this.rotatingAxesChar) return;
+  const localVector = this.rotatingAxes;
+  const worldVector = this.core.localToWorld(localVector.clone()).round();
+  const v = this.calculateCharFromVector(worldVector);
   const vertical = new THREE.Vector3(0, -delta.x, -delta.y);
   const horizontal = new THREE.Vector3(delta.y, -delta.x, 0);
   const vector = {
     x: () => horizontal,
-    y: localRotate => (localRotate.y === 1 ? vertical : horizontal),
+    y: local => (local.y === 1 ? vertical : horizontal),
     z: () => vertical,
   };
-
-  const temp = new THREE.Quaternion().setFromAxisAngle(
-    vector[v](rotatingVector),
-    value,
-  );
+  const temp = new THREE.Quaternion();
+  temp.setFromAxisAngle(vector[v](localVector), value);
   this.getObjectScene().setRotationFromQuaternion(
     temp.multiply(this.lastCubeQuaternion).normalize(),
   );
@@ -403,118 +396,26 @@ Cube.calculateLocalRotatingAxes = function (selected) {
     worldNormal,
     this.mouseDirection,
   );
-  const localRotatingAxesVector = this.core.center
+  const localRotatingVector = this.core
     .worldToLocal(worldRotatingVector)
     .round();
 
-  return localRotatingAxesVector;
+  return localRotatingVector;
 };
 
-// TODO: NOW! rotatingAxes 대신 localVector 이용하기
+Cube.calculateCharFromVector = function (vector) {
+  return ['x', 'y', 'z'].find(axes => Math.abs(vector[axes]) === 1);
+};
+
 Cube.calculateCubicsToRotate = function (selected, cubic) {
-  const worldNormal = this.getWorldNormal(selected);
-  const worldRotatingVector = this.calculateWorldRotatingVector(
-    worldNormal,
-    this.mouseDirection,
-  );
+  this.rotatingAxes = this.calculateLocalRotatingAxes(selected);
+  this.rotatingAxesChar = this.calculateCharFromVector(this.rotatingAxes);
 
-  // TODO: 회전축 변경 -> rotatingCubics 구하느곳으로 옮기기
-  // TODO: axes 가 - 인 경우도 따로 처리
-  // const localRotatingAxesVector = this.core.center
-  //   .worldToLocal(worldRotatingVector)
-  //   .round();
-  // this.localRotatingAxesVector = localRotatingAxesVector;
-  this.localRotatingAxesVector = this.calculateLocalRotatingAxes(selected);
-
-  console.log('localRotatingAxesVector: ');
-  console.log(this.localRotatingAxesVector);
-
-  console.log('worldRotatingAxesVector: ');
-  console.log(worldRotatingVector);
-
-  console.log('worldNormal');
-  console.log(worldNormal);
-
-  console.log('localNormal');
-
-  const localNormal = this.core.center.worldToLocal(worldNormal).round();
-  console.log(localNormal);
-
-  let tempLocalAxes = '';
-  // TODO: roatatingAxes 수정
-  if (
-    this.localRotatingAxesVector.x === 1 ||
-    this.localRotatingAxesVector.x === -1
-  )
-    tempLocalAxes = 'x';
-  else if (
-    this.localRotatingAxesVector.y === 1 ||
-    this.localRotatingAxesVector.y === -1
-  )
-    tempLocalAxes = 'y';
-  else if (
-    this.localRotatingAxesVector.z === 1 ||
-    this.localRotatingAxesVector.z === -1
-  )
-    tempLocalAxes = 'z';
-
-  this.rotatingAxes = tempLocalAxes;
-  console.log('cubic.position');
-  console.log(cubic.position);
-  // console.log(this.rotatingAxes);
   return this.filterCubicsByPlane(
-    // tempLocalAxes,
-    // cubic.position[tempLocalAxes] + 1,
-    this.rotatingAxes,
-    cubic.position[this.rotatingAxes] + 1,
+    this.rotatingAxesChar,
+    cubic.position[this.rotatingAxesChar] + 1,
     this.cubics,
   );
-};
-
-// FIXME: mouse를 어느정도 이동해야 direction 이 정해짐
-Cube.getContainingPlane = function (cubic) {
-  if (this.mouseDirection === 'x') {
-    return this.filterCubicsByPlane('y', cubic.position.y + 1, this.cubics);
-  }
-  if (this.mouseDirection === 'y') {
-    return this.filterCubicsByPlane('x', cubic.position.x + 1, this.cubics);
-  }
-
-  return null;
-};
-
-Cube.rotateCubics = function (start, delta, value) {
-  // TODO: group으로 묶거나 scenegraph에 합치거나..
-
-  const tempScene = new THREE.Object3D();
-  tempScene.name = 'tempScene';
-
-  const temp = new THREE.Quaternion();
-  if (this.mouseDirection === 'x') {
-    if (start.y > 0) {
-      // (x,y,z) -> (y,x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-    } else {
-      // (x,y,z) -> (y,-x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, -delta.x, 0), value);
-    }
-  } else if (this.mouseDirection === 'y') {
-    // (x,y,z) -> (z, x, -y)
-    if (start.x > 0) {
-      temp.setFromAxisAngle(new THREE.Vector3(0, delta.x, -delta.y), value);
-    } else {
-      // (x,y,z) -> (y,x,z)
-      temp.setFromAxisAngle(new THREE.Vector3(delta.y, delta.x, 0), value);
-    }
-  }
-
-  // const clicked = this.selectedMesh;
-  const cubic = this.selectedMesh.parent;
-  this.core.center.add(tempScene);
-  tempScene.add(cubic);
-
-  const worldCoreRotation = this.lastCubeQuaternion;
-  tempScene.setRotationFromQuaternion(temp.normalize());
 };
 
 Cube.rotateBody = function (start, current) {
@@ -523,16 +424,13 @@ Cube.rotateBody = function (start, current) {
     const direction = this.mouseDirection;
     const weight = 10; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
     const value = Math.abs(delta[direction]);
-    this.mouseVector = delta;
     delta[direction] *= weight;
     delta.normalize();
     if (!this.selectedMesh) {
       this.rotateCore(start, delta, value);
     } else {
-      // 하나씩 회전
-      // this.rotateCubics(start, delta, value);
       const velocity = 0.1;
-      this.rotateCubicsByScene(start, delta, value + velocity);
+      this.rotateCubicsByScene(delta, value + velocity);
     }
   }
 };
@@ -571,7 +469,7 @@ Cube.attachCubicsToCore = function () {
   const cubics = this.getObjectScene().children;
   if (!cubics.length) return;
   for (let i = cubics.length - 1; i >= 0; i--) {
-    this.core.center.attach(cubics[i]);
+    this.core.attach(cubics[i]);
   }
 };
 
@@ -583,14 +481,13 @@ Cube.addCubicsToObjectScene = function (rotatingLayer, scene) {
   rotatingLayer.forEach(row => {
     row.forEach(col => {
       scene.add(col);
-      // scene.attach(col);
     });
   });
 
   return scene;
 };
 
-Cube.slerp = function (clickStart, clickEnd, object = this.core.center) {
+Cube.slerp = function (clickStart, clickEnd, object = this.core) {
   const userDirection = this.getUserDirection(clickStart, clickEnd);
   const destination = getCloserDirection(
     // this.core.center,
