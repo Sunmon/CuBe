@@ -490,22 +490,13 @@ Cube.addCubicsToObjectScene = function (rotatingLayer, scene) {
 Cube.slerp = function (clickStart, clickEnd, object = this.core) {
   const userDirection = this.getUserDirection(clickStart, clickEnd);
   const destination = getCloserDirection(
-    // this.core.center,
     object,
     this.lastCubeQuaternion,
     userDirection,
   );
-  let clockwise = false;
-  if (clickEnd.x > clickStart.x && this.mouseDirection === 'x')
-    clockwise = true;
-  if (clickEnd.y > clickStart.y && this.mouseDirection === 'y')
-    clockwise = true;
-
-  if (!destination.equals(this.lastCubeQuaternion)) {
-    this.needCubicsUpdate = true;
-  } else {
-    this.needCubicsUpdate = false;
-  }
+  const clockwise =
+    clickEnd[this.mouseDirection] > clickStart[this.mouseDirection];
+  this.needCubicsUpdate = !destination.equals(this.lastCubeQuaternion);
 
   console.log('original cube: ');
   this.printPositions();
