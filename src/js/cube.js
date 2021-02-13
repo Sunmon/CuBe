@@ -19,7 +19,7 @@ const getCloserDirection = function (object, origin, direction) {
   return dest;
 };
 
-const slerpObject = function (object, destination, clockwise) {
+const tweenObject = function (object, destination, clockwise) {
   new TWEEN.Tween(object.quaternion)
     .to(destination, 100)
     .start()
@@ -501,8 +501,8 @@ Cube.slerp = function (clickStart, clickEnd, object = this.core) {
   console.log('original cube: ');
   this.printPositions();
 
-  slerpObject(object, destination, clockwise);
-  this.setLastCubeQuaternion(destination);
+  tweenObject(object, destination, clockwise);
+  // this.setLastCubeQuaternion(destination);
 };
 
 export default Cube;
