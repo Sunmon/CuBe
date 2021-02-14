@@ -19,7 +19,7 @@ const getCloserDirection = function (object, origin, direction) {
   return dest;
 };
 
-const slerpObject = function (object, destination, clockwise) {
+const tweenObject = function (object, destination, clockwise) {
   new TWEEN.Tween(object.quaternion)
     .to(destination, 100)
     .start()
@@ -28,8 +28,9 @@ const slerpObject = function (object, destination, clockwise) {
       if (!isEmpty(Cube.rotatingLayer)) {
         // if (isEmpty(Cube.rotatingLayer)) {
         Cube.attachCubicsToCore();
-        console.log('position changed');
-        Cube.printPositions();
+
+        // console.log('position changed');
+        // Cube.printPositions();
         console.log('rotating layer');
         Cube.printPositions(Cube.rotatingLayer);
 
@@ -501,7 +502,7 @@ Cube.slerp = function (clickStart, clickEnd, object = this.core) {
   console.log('original cube: ');
   this.printPositions();
 
-  slerpObject(object, destination, clockwise);
+  tweenObject(object, destination, clockwise);
   this.setLastCubeQuaternion(destination);
 };
 
