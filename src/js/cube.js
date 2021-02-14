@@ -398,7 +398,7 @@ Cube.calculateLocalRotatingAxes = function (selected) {
     this.mouseDirection,
   );
   const localRotatingVector = this.core
-    .worldToLocal(worldRotatingVector)
+    .worldToLocal(worldRotatingVector.clone())
     .round();
 
   return localRotatingVector;
