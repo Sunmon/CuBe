@@ -45,6 +45,14 @@ const initUserGesture = function (event) {
     customCamera.getCamera(),
   )?.object;
   cube.lastCubeQuaternion.copy(cube.core.quaternion);
+
+  // 임시로 이름 체크용 함수 넣음
+  if (cube.selectedMesh) {
+    console.log(cube.selectedMesh.parent.name);
+    console.log(cube.getWorldNormal(cube.selectedMesh));
+    // 임시로 worldNormal 저장해둠
+    cube.tempBeginWorldNormal = cube.getWorldNormal(cube.selectedMesh);
+  }
 };
 
 const alreadyClear = function () {
@@ -58,7 +66,9 @@ const rotateToClosest = function () {
     cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
   } else {
     const objectScene = customScene.getObjectByName('objectScene');
-    cube.slerp(clickStart, clickEnd, objectScene); // 특정 층만 회전
+
+    // cube.slerp(clickStart, clickEnd, objectScene); // 특정 층만 회전
+    cube.slerpCubicsByScene(cube.deltaTemp, objectScene); // 특정 층만 회전
   }
 };
 
