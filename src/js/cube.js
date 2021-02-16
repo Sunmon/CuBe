@@ -10,7 +10,6 @@ const addObject = function (target, obj) {
 };
 
 const getCloserDirection = function (object, origin, direction) {
-  // FIXME: cubics는 계산이 잘 안 맞을 때 있음.. 돌아가야하는데 다시 원래자리로 감
   const dest = new THREE.Quaternion().multiplyQuaternions(direction, origin);
   if (object.quaternion.angleTo(origin) < object.quaternion.angleTo(dest)) {
     dest.copy(origin);
@@ -24,47 +23,23 @@ const tweenObject = function (object, destination, clockwise) {
     .to(destination, 100)
     .start()
     .onComplete(() => {
-      // TODO: 안에 내용 따로 함수로 만들어야하나..? clear, rotate 이거 여따만들어야할성싶네
       if (!isEmpty(Cube.rotatingLayer)) {
-        // if (isEmpty(Cube.rotatingLayer)) {
         Cube.attachCubicsToCore();
-        console.log('position changed');
-        // Cube.printPositions();
-        console.log('rotating layer');
-        Cube.printPositions(Cube.rotatingLayer);
-        Cube.printNames(Cube.rotatingLayer);
-
         if (Cube.needCubicsUpdate) {
           Cube.updateCubicsArray(clockwise);
-          console.log('after rotating layer');
-          Cube.printNames(Cube.rotatingLayer);
         }
-        // console.log(Cube.cubics[0][0][2].equals(Cube.rotatingCubics[0][0]));
         Cube.rotatingLayer = [[]];
-        console.log('after full');
-        Cube.printPositions();
-      } else {
-        // 전체 코어를 움직인 경우도 cubicsArray를 업데이트한다??
       }
-
-      console.log('attached cubics');
-      console.log(Cube.core);
-      console.log(Cube.core.children.length);
-
       const scene = Cube.core.parent;
       const objectScene = scene.getObjectByName('objectScene');
-      // this.setLastCubeQuaternion(destination);
 
-      // Cube.rotateObjectScene.clear();
-      // Cube.rotateObjectScene = null;
       objectScene.clear();
       scene.remove(objectScene);
-      // objectScene = null;
 
       Cube.rotatingAxesChar = '';
       Cube.rotatingAxes = null;
       Cube.selectedMesh = null;
-      // Cube.printPositions();
+      Cube.needCubicsUpdate = false;
       Cube.setLastCubeQuaternion(destination);
     });
 };
@@ -92,7 +67,7 @@ Cube.getObjectScene = function () {
 
 // 3x3 매트릭스 90도 회전
 Cube.createRotatedMatrix = function (arr, clockwise) {
-  const ret = Array.from(Array(3), () => Array(3).fill(0));
+  const ret = Array.from(Array(3), () => new Array(3));
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
       if (clockwise) {
@@ -106,12 +81,17 @@ Cube.createRotatedMatrix = function (arr, clockwise) {
   return ret;
 };
 
-// TODO: cubics 어레이 수정 작성하기
-// FIXME: 벡터를 이용하여 회전 판별하도록 변경하기 (지금처럼 단순히 x,y,z 말고)
 Cube.updateCubicsArray = function (clockwise) {
-  // TODO: rotatingAxes 대신 vector를 이용하기
-  // const clock = this.rotatingAxesChar === 'z' ? !clockwise : clockwise;
-  const newMatrix = this.createRotatedMatrix(this.rotatingLayer, clockwise);
+  const dir = this.rotatingAxesChar === 'y' ? !clockwise : clockwise;
+  const clock = () => {
+    return this.rotatingAxesChar === 'x'
+      ? clockwise
+      : this.rotatingAxesChar === 'y'
+      ? !clockwise
+      : clockwise;
+  };
+
+  const newMatrix = this.createRotatedMatrix(this.rotatingLayer, dir);
 
   // change
   for (let i = 0; i < 3; i++) {
@@ -202,15 +182,6 @@ Cube.printNames = function (matrix) {
   }
 };
 
-// Cube.core = {
-//   center: new THREE.Object3D(),
-//   xAxis: CustomMesh.createLine([-CUBE_SIZE, 0, 0], [CUBE_SIZE, 0, 0]),
-//   yAxis: CustomMesh.createLine([0, -CUBE_SIZE / 2, 0], [0, CUBE_SIZE / 2, 0]),
-//   zAxis: CustomMesh.createLine([0, 0, -CUBE_SIZE / 2], [0, 0, CUBE_SIZE / 2]),
-// };
-
-// Cube.core = new THREE.Object3D();
-
 Cube.createPlane = function (color) {
   return CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
 };
@@ -246,6 +217,7 @@ Cube.addCubicsToCore = function (cubics) {
     for (let j = 0; j < 3; j++) {
       for (let k = 0; k < 3; k++) {
         this.core.add(cubics[i][j][k]);
+        cubics[i][j][k].position.round();
         // this.core.center.attach(cubics[i][j][k]);
       }
     }
@@ -255,6 +227,7 @@ Cube.addCubicsToCore = function (cubics) {
 // 평면에 해당하는 3x3 벡터를 리턴
 // array는 새로 만들어지지만, 안의 객체는 레퍼런스 복사
 Cube.filterCubicsByPlane = function (plane, value, cubics) {
+  value = Math.round(value);
   if (plane === 'x') return [...cubics[value]];
   if (plane === 'y') return cubics.map(y => y[value]);
   if (plane === 'z') return cubics.map(y => y.map(z => z[value]));
@@ -314,9 +287,6 @@ Cube.getWorldNormal = function (object) {
   normalMatrix.getNormalMatrix(object.matrixWorld);
   worldNormal.applyMatrix3(normalMatrix).normalize().round();
 
-  console.log(
-    `worldNormal : ${worldNormal.x}, ${worldNormal.y}, ${worldNormal.z}`,
-  );
   return worldNormal;
 };
 
@@ -339,7 +309,6 @@ Cube.init = function () {
     for (let j = 2; j >= 0; j--) {
       for (let k = 2; k >= 0; k--) {
         this.cubics[i][j][k].name = String.fromCharCode(name);
-        // this.cubics[i][j][k].name = 'String.fromCharCode(name)';
         name++;
       }
     }
@@ -394,11 +363,6 @@ Cube.rotateCubicsByScene = function (delta, value) {
     y: local => (local.y === 1 ? vertical : horizontal),
     z: () => vertical,
   };
-
-  console.log('local rotating vector:');
-  console.log(localVector);
-  console.log('round');
-  console.log(vector[v](localVector).clone().round()); // 거의 world rotating axes
 
   const temp = new THREE.Quaternion();
   temp.setFromAxisAngle(vector[v](localVector), value);
@@ -503,11 +467,6 @@ Cube.getUserDirection = function (clickStart, clickEnd) {
     new THREE.Vector3(0, 1, 0),
   ];
 
-  console.log('local axes');
-  console.log(this.rotatingAxes);
-  // core회전할때나 절반 나눠서 생각하지...
-  // 가장 가까운 direction만 축에 맞춰서 잘 돌려주면 될거같은데?
-
   const [other, k] = this.mouseDirection === 'x' ? ['y', 1] : ['x', 3];
   const [from, to] = clickStart[other] > 0 ? [k, 2] : [3 - k, 1]; // 유닛벡터 선택
   const direction = new THREE.Quaternion().setFromUnitVectors(
@@ -515,19 +474,10 @@ Cube.getUserDirection = function (clickStart, clickEnd) {
     units[to],
   );
 
-  // FIXME: invert 구하는 방법 바꾸기
-  // invert는 네가지 벡터만으로 모든 방향을 표시하기 위해 만들었음
-
   const invert =
     clickStart[this.mouseDirection] < clickEnd[this.mouseDirection];
   if (invert) direction.invert();
   this.clockwise = invert;
-  // if (!this.rotatingAxes) {
-  //   // this.rotatingAxes =
-  //   if (from === 1 || from === 2) this.rotatingAxes = 'y';
-  //   if (from === 3) this.rotatingAxes = 'z';
-  //   if (from === 0) this.rotatingAxes = 'x';
-  // }
 
   return direction;
 };
@@ -567,12 +517,7 @@ Cube.slerp = function (clickStart, clickEnd, object = this.core) {
 
   this.needCubicsUpdate = !destination.equals(this.lastCubeQuaternion);
 
-  console.log('original cube: ');
-  this.printPositions();
-  this.printNames();
-
   tweenObject(object, destination, clockwise);
-  // this.setLastCubeQuaternion(destination);
 };
 
 // TODO:얘를 slerp로 바꿔버리자
@@ -581,19 +526,17 @@ Cube.slerpCubicsByScene = function (delta, object) {
   const localVector = this.rotatingAxes;
   const worldVector = this.core.localToWorld(localVector.clone()).round();
   const v = this.calculateCharFromVector(worldVector);
+
+  // 가로회전축, 세로회전축
   const vertical = new THREE.Vector3(0, -delta.x, -delta.y);
   const horizontal = new THREE.Vector3(delta.y, -delta.x, 0);
+
   const vector = {
     x: () => horizontal,
     y: local => (local.y === 1 ? vertical : horizontal),
     z: () => vertical,
   };
 
-  // console.log('vector[v]', vector[v](localVector).clone().round());
-  // const direction = this.mouseDirection;
-  // const value = Math.abs(delta[direction]);
-  // console.log('value in slerp::', value / 10 + 0.1);
-  console.log('tempBegin: ', this.tempBeginWorldNormal);
   const origin = new THREE.Vector3().copy(this.tempBeginWorldNormal).round();
   const userDirection = new THREE.Vector3()
     .copy(this.tempBeginWorldNormal)
@@ -602,53 +545,24 @@ Cube.slerpCubicsByScene = function (delta, object) {
   const cur = new THREE.Vector3()
     .copy(this.tempBeginWorldNormal)
     .applyAxisAngle(vector[v](localVector), this.tempValue + 0.1);
-  console.log('origin: ', origin);
-  console.log('cur: ', cur);
-  console.log('userDirection: ', userDirection);
-
-  // TODO: 벡터를 이용하여 angleto로 가까운거 구하는 방법
-  // console.log('tempVal in slerp::', this.tempValue + 0.1);
 
   const func = (cur, origin, userDir) => {
-    console.log('cur -> origin: ', cur.angleTo(origin));
-    console.log('cur -> userDIr: ', cur.angleTo(userDir));
     return cur.angleTo(origin) < cur.angleTo(userDir) ? origin : userDir;
   };
-
-  // //  TODO: ??? 그냥 value값 크기에 따라서 정해도 되는거 아녀?
   const destinationVector = func(cur, origin, userDirection);
-  // console.log('destinationVector', destinationVector);
-  // const destByValue = this.tempValue > Math.PI/4 ? vector[v](local).clone();
   const destination = new THREE.Quaternion().setFromUnitVectors(
     origin,
     destinationVector,
   );
 
-  // console.log('destination : unitvector 0', destination);
-  destination.multiply(this.lastCubeQuaternion).normalize();
-  // this.getObjectScene().setRotationFromQuaternion(
-  // temp.multiply(this.lastCubeQuaternion).normalize(),
-  // );
+  this.needCubicsUpdate = !destinationVector.equals(origin);
 
-  // TODO: 기존처럼 quaternion으로 가까운거 구하는 방법
-  // const userDirection = new THREE.Quaternion().setFromAxisAngle(
-  //   vector[v](localVector).clone().round(),
-  //   Math.PI / 2,
-  // );
-  // const destination = getCloserDirection(
-  //   object,
-  //   this.lastCubeQuaternion,
-  //   userDirection,
-  // );
-  const clockwise =
-    vector[v](localVector).x +
-      vector[v](localVector).y +
-      vector[v](localVector).z <
-    0;
+  destination.multiply(this.lastCubeQuaternion).normalize();
+
+  let clockwise = vector[v](localVector)[v] < 0;
+  if (localVector.x + localVector.y + localVector.z < 0) clockwise = !clockwise;
 
   this.clockwise = clockwise;
-  console.log('clockwise', clockwise);
-  this.needCubicsUpdate = !destination.equals(this.lastCubeQuaternion);
   tweenObject(object, destination, clockwise);
 };
 
