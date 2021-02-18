@@ -54,8 +54,10 @@ const Cube = {
   rotatingAxesChar: '', // cubic.core의 로컬 회전축. ('x','y','z')
   rotatingAxes: new THREE.Vector3(), // rotatingLayer의 local 회전하는 축
   mouseDirection: '', // x,y (화면 가로, 화면 세로) TODO: 빼버리고 mouseVetor를 이용하여 계산하는 함수로 넘기기?
+  mouseDelta: new THREE.Vector2(),
   rotateInverse: '',
   selectedMesh: null, // 마우스로 선택한 메쉬
+  selectedWorldNormal: new THREE.Vector3(), // 선택한 메쉬의 월드 노멀 벡터
   needCubicsUpdate: false,
 };
 
@@ -441,20 +443,19 @@ Cube.calculateCubicsToRotate = function (selected, cubic) {
 
 Cube.rotateBody = function (start, current) {
   const delta = new THREE.Vector2(start.x - current.x, start.y - current.y);
-  this.deltaTemp = delta;
+  this.mouseDelta = delta;
   if (this.mouseDirection || this.updateMouseDirection(delta)) {
     const direction = this.mouseDirection;
     const weight = 10; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
     const value = Math.abs(delta[direction]);
-    this.tempValue = value;
-    delta[direction] *= weight;
-    delta.normalize();
+    const weightedDelta = delta.clone();
+    weightedDelta[direction] *= weight;
+    weightedDelta.normalize();
     if (!this.selectedMesh) {
-      this.rotateCore(start, delta, value);
+      this.rotateCore(start, weightedDelta, value);
     } else {
       const velocity = 0.1;
-      // console.log('value::', value + 0.1);
-      this.rotateCubicsByScene(delta, value + velocity);
+      this.rotateCubicsByScene(weightedDelta, value + velocity);
     }
   }
 };
@@ -541,14 +542,17 @@ Cube.slerpCubicsByScene = function (delta, object) {
     z: () => vertical,
   };
 
-  const origin = new THREE.Vector3().copy(this.tempBeginWorldNormal).round();
+  const origin = new THREE.Vector3().copy(this.selectedWorldNormal).round();
   const userDirection = new THREE.Vector3()
-    .copy(this.tempBeginWorldNormal)
+    .copy(this.selectedWorldNormal)
     .applyAxisAngle(vector[v](localVector), Math.PI / 2)
     .round();
   const cur = new THREE.Vector3()
-    .copy(this.tempBeginWorldNormal)
-    .applyAxisAngle(vector[v](localVector), this.tempValue + 0.1);
+    .copy(this.selectedWorldNormal)
+    .applyAxisAngle(
+      vector[v](localVector),
+      Math.abs(delta[this.mouseDirection]) + 0.1,
+    );
 
   const func = (cur, origin, userDir) => {
     return cur.angleTo(origin) < cur.angleTo(userDir) ? origin : userDir;
@@ -568,6 +572,13 @@ Cube.slerpCubicsByScene = function (delta, object) {
 
   this.clockwise = clockwise;
   tweenObject(object, destination, clockwise);
+};
+
+Cube.saveCurrentStatus = function (object, selected) {
+  this.setLastCubeQuaternion(object.quaternion);
+  if (selected) {
+    this.selectedWorldNormal = this.getWorldNormal(selected);
+  }
 };
 
 export default Cube;

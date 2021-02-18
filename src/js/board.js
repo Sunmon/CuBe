@@ -16,9 +16,9 @@ const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
 const followUserGesture = function (event) {
+  if (!pickHelper.motioning) return;
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  if (!pickHelper.motioning) return;
   if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
     const cubic = cube.selectedMesh.parent;
     const objectScene = customScene.getObjectByName('objectScene');
@@ -42,13 +42,7 @@ const initUserGesture = function (event) {
     customScene,
     customCamera.getCamera(),
   )?.object;
-  cube.lastCubeQuaternion.copy(cube.core.quaternion);
-
-  // 임시로 이름 체크용 함수 넣음
-  if (cube.selectedMesh) {
-    // 임시로 worldNormal 저장해둠
-    cube.tempBeginWorldNormal = cube.getWorldNormal(cube.selectedMesh);
-  }
+  cube.saveCurrentStatus(cube.core, cube.selectedMesh);
 };
 
 const alreadyClear = function () {
@@ -66,7 +60,7 @@ const rotateToClosest = function () {
       alert('no object scene');
       return;
     }
-    cube.slerpCubicsByScene(cube.deltaTemp, objectScene); // 특정 층만 회전
+    cube.slerpCubicsByScene(cube.mouseDelta, objectScene); // 특정 층만 회전
   }
 };
 
