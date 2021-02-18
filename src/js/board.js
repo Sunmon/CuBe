@@ -16,9 +16,9 @@ const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
 const followUserGesture = function (event) {
-  if (!pickHelper.motioning) return;
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
+  if (!pickHelper.motioning) return;
   if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
     const cubic = cube.selectedMesh.parent;
     const objectScene = customScene.getObjectByName('objectScene');
