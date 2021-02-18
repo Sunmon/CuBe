@@ -14,6 +14,7 @@ module.exports = {
     'import/no-unresolved': 'off',
     'import/extensions': 'off',
     'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
+    'no-underscore-dangle': ['error', { allow: ['foo_', '_bar'] }],
     /* eslint-disable import/extensions */
   },
 };
