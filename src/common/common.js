@@ -17,4 +17,10 @@ const isEmpty = function (object) {
   return false;
 };
 
-export { axesHelper, isEmpty };
+const setObjectPosition = function (object, x, y, z) {
+  object.x = x;
+  object.y = y;
+  object.z = z;
+};
+
+export { axesHelper, isEmpty, setObjectPosition };

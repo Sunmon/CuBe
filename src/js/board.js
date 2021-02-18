@@ -11,9 +11,9 @@ import { axesHelper, isEmpty } from '../common/common.js';
 
 const customCamera = CustomCamera.init();
 const customRenderer = CustomRenderer.init();
-const customScene = CustomScene.init();
+const customScene = new CustomScene();
 const cube = Cube.init();
-const pickHelper = PickHelper.init(customScene, customCamera.getCamera());
+const pickHelper = PickHelper.init(customScene.scene, customCamera.getCamera());
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
@@ -22,7 +22,7 @@ const followUserGesture = function (event) {
   if (!pickHelper.motioning) return;
   if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
     const cubic = cube.selectedMesh.parent;
-    const objectScene = customScene.getObjectByName('objectScene');
+    const objectScene = customScene.scene.getObjectByName('objectScene');
     cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
     cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
   }
@@ -41,7 +41,7 @@ const initUserGesture = function (event) {
   // pickHelper.setPickPosition(event, customRenderer.getCanvas());
   pickHelper.saveCurrentPosition(event, customRenderer.getCanvas());
   cube.selectedMesh = pickHelper.getClosestSticker(
-    customScene,
+    customScene.scene,
     customCamera.getCamera(),
   );
   cube.saveCurrentStatus(cube.core, cube.selectedMesh);
@@ -57,7 +57,7 @@ const rotateToClosest = function () {
   if (!cube.selectedMesh) {
     cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
   } else {
-    const objectScene = customScene.getObjectByName('objectScene');
+    const objectScene = customScene.scene.getObjectByName('objectScene');
     if (!objectScene) {
       alert('no object scene');
       return;
@@ -76,7 +76,8 @@ const createObjectScene = function (object) {
 
 const handleMouseDown = function (event) {
   initUserGesture(event);
-  customScene.add(createObjectScene(cube.core));
+  customScene.addObject(createObjectScene(cube.core));
+  // customScene.getScene().add(createObjectScene(cube.core));
 };
 
 const handleMouseMove = function (event) {
@@ -113,8 +114,8 @@ const render = function (camera, renderer, time) {
   if (renderer.resizeRenderToDisplaySize()) {
     camera.updateAspect(renderer.getRendererAspect());
   }
-  pickHelper.pick(customScene, camera.getCamera(), time);
-  renderer.render(customScene, camera.getCamera());
+  pickHelper.pick(customScene.scene, camera.getCamera(), time);
+  renderer.render(customScene.scene, camera.getCamera());
 };
 
 const animate = function (camera, renderer) {
@@ -137,7 +138,7 @@ const initTransformControls = function () {
 
 // eslint-disable-next-line import/prefer-default-export
 export function init() {
-  customScene.add(cube.core);
+  customScene.addObject(cube.core);
   initEventListners();
 
   cube.core.add(axesHelper(4));

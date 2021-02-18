@@ -1,38 +1,36 @@
 import { Scene, DirectionalLight } from '../../lib/three.module.js';
 import { axesHelper } from '../common/common.js';
 
-const createScene = function () {
-  return new Scene();
-};
+export default class CustomScene {
+  constructor() {
+    const light = CustomScene.createLight(0xffffff, 1);
+    this.scene = CustomScene.createScene(light, axesHelper(3));
+  }
 
-const createLight = function (color, intensity) {
-  return new DirectionalLight(color, intensity);
-};
+  static createLight(color, intensity) {
+    const light = new DirectionalLight(color, intensity);
+    light.position.set(8, 8, 8);
+    light.target.position.set(0, 0, 0);
 
-const setObjectPosition = function (x, y, z, obj) {
-  obj.position.x = x;
-  obj.position.y = y;
-  obj.position.z = z;
-};
+    return light;
+  }
 
-// namespace
-const CustomScene = {};
+  static createScene(...objects) {
+    const scene = new Scene();
+    objects.forEach(obj => scene.add(obj));
 
-CustomScene.init = function () {
-  const scene = createScene();
-  const light = createLight(0xffffff, 1);
-  light.position.set(8, 8, 8);
-  light.target.position.set(0, 0, 0);
-  scene.add(light);
-  scene.add(light.target);
-  scene.add(axesHelper(3));
+    return scene;
+  }
 
-  return scene;
-};
+  set scene(scene) {
+    this._scene = scene;
+  }
 
-CustomScene.addObject = function (x, y, z, obj, scene) {
-  setObjectPosition(x, y, z);
-  scene.add(obj);
-};
+  get scene() {
+    return this._scene;
+  }
 
-export default CustomScene;
+  addObject(object) {
+    this.scene.add(object);
+  }
+}
