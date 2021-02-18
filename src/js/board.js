@@ -13,7 +13,7 @@ const customCamera = CustomCamera.init();
 const customRenderer = CustomRenderer.init();
 const customScene = CustomScene.init();
 const cube = Cube.init();
-const pickHelper = PickHelper.init();
+const pickHelper = PickHelper.init(customScene, customCamera.getCamera());
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
@@ -41,7 +41,7 @@ const initUserGesture = function (event) {
   cube.selectedMesh = pickHelper.getClosestSticker(
     customScene,
     customCamera.getCamera(),
-  )?.object;
+  );
   cube.saveCurrentStatus(cube.core, cube.selectedMesh);
 };
 
@@ -111,12 +111,7 @@ const render = function (camera, renderer, time) {
   if (renderer.resizeRenderToDisplaySize()) {
     camera.updateAspect(renderer.getRendererAspect());
   }
-  pickHelper.pick(
-    pickHelper.pickPosition,
-    customScene,
-    camera.getCamera(),
-    time,
-  );
+  pickHelper.pick(customScene, camera.getCamera(), time);
   renderer.render(customScene, camera.getCamera());
 };
 

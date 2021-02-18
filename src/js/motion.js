@@ -1,22 +1,27 @@
 /**
  * @ref https://threejsfundamentals.org/threejs/lessons/kr/threejs-picking.html
  */
-import { Raycaster } from '../../lib/three.module.js';
+import { Raycaster, Scene, Camera } from '../../lib/three.module.js';
 
 // 네임 스페이스
-const PickHelper = {};
+const PickHelper = {
+  raycaster: Raycaster,
+  scene: Scene,
+  camera: Camera,
+  pickPosition: { x: 0, y: 0 }, // 정규화된 마우스 좌표
+  pickStartedPosition: { x: 0, y: 0 },
+  motioning: false,
+  pickedObject: null,
+  pickedObjectSavedColor: 0,
+};
 
-// 캔버스 내 정규화된 마우스의 좌표
-PickHelper.pickPosition = { x: 0, y: 0 };
-PickHelper.pickStartedPosition = { x: 0, y: 0 };
-PickHelper.motioning = false;
-PickHelper.selected = null; // 마우스로 선택한 객체
-
-PickHelper.init = function () {
+PickHelper.init = function (scene, camera) {
   this.raycaster = new Raycaster();
+  this.raycaster.params.Line.threshold = 0.1;
+  this.scene = scene;
+  this.camera = camera;
   this.pickedObject = null;
   this.pickedObjectSavedColor = 0;
-  this.raycaster.params.Line.threshold = 0.1;
 
   return this;
 };
@@ -30,29 +35,30 @@ PickHelper.getClosestSticker = function (scene, camera) {
 
   return this.raycaster
     .intersectObjects(scene.children, true)
-    .find(intersect => intersect.object.name === 'sticker');
+    ?.find(intersect => intersect.object.name === 'sticker')?.object;
 };
 
-PickHelper.pick = function (normalizedPosition, scene, camera, time) {
-  // 이미 다른 물체를 피킹했다면 색을 복원합니다
+PickHelper.pick = function (time) {
   if (this.pickedObject) {
-    this.pickedObject.material.color.setHex(this.pickedObjectSavedColor);
-    this.pickedObject = undefined;
+    this.resetPickedObject();
   }
 
-  this.raycaster.setFromCamera(normalizedPosition, camera);
-  const intersectedObjects = this.raycaster.intersectObjects(
-    scene.children,
-    true,
-  );
-  if (intersectedObjects.length) {
-    // this.pickedObject = intersectedObjects[0].object;
-    this.pickedObject = this.getClosestSticker(scene, camera)?.object;
-    this.pickedObjectSavedColor = this.pickedObject?.material.color.getHex();
-    this.pickedObject?.material.color.setHex(
-      (time * 8) % 2 > 1 ? 0xffff00 : 0xff0000,
-    );
+  this.pickedObject = this.getClosestSticker(this.scene, this.camera);
+  if (this.pickedObject) {
+    this.twinklePickedObject(time);
   }
+};
+
+PickHelper.resetPickedObject = function () {
+  this.pickedObject.material.color.setHex(this.pickedObjectSavedColor);
+  this.pickedObject = null;
+};
+
+PickHelper.twinklePickedObject = function (time) {
+  this.pickedObjectSavedColor = this.pickedObject.material.color.getHex();
+  this.pickedObject.material.color.setHex(
+    (time * 8) % 2 > 1 ? 0xffff00 : 0xff0000,
+  );
 };
 
 PickHelper.getCanvasRelativePosition = function (event, canvas) {
