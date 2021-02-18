@@ -356,6 +356,10 @@ Cube.rotateCubicsByScene = function (delta, value) {
   const localVector = this.rotatingAxes;
   const worldVector = this.core.localToWorld(localVector.clone()).round();
   const v = this.calculateCharFromVector(worldVector);
+  const worldNormal = this.getWorldNormal(this.selectedMesh);
+  if (worldNormal.y === 1 && this.mouseDirection === 'x') {
+    [delta.x, delta.y] = [delta.y, delta.x];
+  }
   const vertical = new THREE.Vector3(0, -delta.x, -delta.y);
   const horizontal = new THREE.Vector3(delta.y, -delta.x, 0);
   const vector = {
