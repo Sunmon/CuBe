@@ -26,18 +26,6 @@ PickHelper.init = function (scene, camera) {
   return this;
 };
 
-PickHelper.getCurrentIntersect = function (scene) {
-  return this.raycaster.intersectObjects(scene.children, true)[0];
-};
-
-PickHelper.getClosestSticker = function (scene, camera) {
-  this.raycaster.setFromCamera(this.pickPosition, camera);
-
-  return this.raycaster
-    .intersectObjects(scene.children, true)
-    ?.find(intersect => intersect.object.name === 'sticker')?.object;
-};
-
 PickHelper.pick = function (time) {
   if (this.pickedObject) {
     this.resetPickedObject();
@@ -54,19 +42,19 @@ PickHelper.resetPickedObject = function () {
   this.pickedObject = null;
 };
 
+PickHelper.getClosestSticker = function (scene, camera) {
+  this.raycaster.setFromCamera(this.pickPosition, camera);
+
+  return this.raycaster
+    .intersectObjects(scene.children, true)
+    ?.find(intersect => intersect.object.name === 'sticker')?.object;
+};
+
 PickHelper.twinklePickedObject = function (time) {
   this.pickedObjectSavedColor = this.pickedObject.material.color.getHex();
   this.pickedObject.material.color.setHex(
     (time * 8) % 2 > 1 ? 0xffff00 : 0xff0000,
   );
-};
-
-PickHelper.getCanvasRelativePosition = function (event, canvas) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: ((event.clientX - rect.left) * canvas.width) / rect.width,
-    y: ((event.clientY - rect.top) * canvas.height) / rect.height,
-  };
 };
 
 PickHelper.setPickPosition = function (event, canvas) {
@@ -81,6 +69,13 @@ PickHelper.setPickPosition = function (event, canvas) {
   }
 };
 
+PickHelper.getCanvasRelativePosition = function (event, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((event.clientX - rect.left) * canvas.width) / rect.width,
+    y: ((event.clientY - rect.top) * canvas.height) / rect.height,
+  };
+};
 PickHelper.setStartedPosition = function (pos) {
   this.pickStartedPosition = { ...pos };
   this.motioning = true;
