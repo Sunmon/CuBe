@@ -13,6 +13,7 @@ module.exports = {
     'func-names': 'off',
     'import/no-unresolved': 'off',
     'import/extensions': 'off',
+    'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
     /* eslint-disable import/extensions */
   },
 };

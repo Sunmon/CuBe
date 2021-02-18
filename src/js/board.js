@@ -7,7 +7,7 @@ import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
 import { PickHelper } from './motion.js';
-import { axesHelper } from '../common/common.js';
+import { axesHelper, isEmpty } from '../common/common.js';
 
 const customCamera = CustomCamera.init();
 const customRenderer = CustomRenderer.init();
@@ -16,44 +16,89 @@ const cube = Cube.init();
 const pickHelper = PickHelper.init();
 
 const followUserGesture = function (event) {
+  if (!pickHelper.motioning) return;
   const gesture = (event.touches && event.touches[0]) || event;
   pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  if (pickHelper.motioning) {
-    cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
+  if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
+    const cubic = cube.selectedMesh.parent;
+    const objectScene = customScene.getObjectByName('objectScene');
+    cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
+    cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
   }
+
+  cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
 };
 
 const clearUserGesture = function () {
   pickHelper.clearPickPosition();
+  cube.resetMouseDirection();
 };
 
 const initUserGesture = function (event) {
   event.preventDefault(); // 스크롤 이벤트 방지
-  const gesture = (event.touches && event.touches[0]) || event;
-  pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  cube.core.center.quaternion.copy(cube.lastCubeQuaternion);
+
+  pickHelper.setPickPosition(event, customRenderer.getCanvas());
+  cube.selectedMesh = pickHelper.getClosestSticker(
+    customScene,
+    customCamera.getCamera(),
+  )?.object;
+  cube.saveCurrentStatus(cube.core, cube.selectedMesh);
+};
+
+const alreadyClear = function () {
+  return !pickHelper.motioning;
 };
 
 const rotateToClosest = function () {
   const clickStart = { ...pickHelper.pickStartedPosition };
   const clickEnd = { ...pickHelper.pickPosition };
-  cube.slerp(clickStart, clickEnd);
-  pickHelper.clearPickPosition();
-  cube.resetMouseDirection();
+  if (!cube.selectedMesh) {
+    cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
+  } else {
+    const objectScene = customScene.getObjectByName('objectScene');
+    if (!objectScene) {
+      alert('no object scene');
+      return;
+    }
+    cube.slerpCubicsByScene(cube.mouseDelta, objectScene); // 특정 층만 회전
+  }
+};
+
+const createObjectScene = function (object) {
+  const objectScene = new THREE.Object3D();
+  objectScene.applyQuaternion(object.quaternion);
+  objectScene.name = 'objectScene';
+
+  return objectScene;
+};
+
+const handleMouseDown = function (event) {
+  initUserGesture(event);
+  customScene.add(createObjectScene(cube.core));
+};
+
+const handleMouseMove = function (event) {
+  followUserGesture(event);
+};
+
+const handleMouseUp = function (event) {
+  if (alreadyClear()) return;
+  rotateToClosest(event);
+  clearUserGesture();
 };
 
 const initMouseEvents = function () {
-  window.addEventListener('mousemove', followUserGesture);
-  window.addEventListener('mouseout', clearUserGesture);
-  window.addEventListener('mouseleave', clearUserGesture);
-  window.addEventListener('mousedown', initUserGesture);
-  window.addEventListener('mouseup', rotateToClosest);
+  window.addEventListener('mousedown', handleMouseDown);
+  window.addEventListener('mousemove', handleMouseMove);
+  window.addEventListener('mouseout', handleMouseUp);
+  window.addEventListener('mouseleave', handleMouseUp);
+  window.addEventListener('mouseup', handleMouseUp);
 };
 
 const initMobileEvents = function () {
-  window.addEventListener('touchstart', initUserGesture, { passive: false });
-  window.addEventListener('touchmove', followUserGesture);
-  window.addEventListener('touchend', rotateToClosest);
+  window.addEventListener('touchstart', handleMouseDown, { passive: false });
+  window.addEventListener('touchmove', handleMouseMove);
+  window.addEventListener('touchend', handleMouseUp);
 };
 
 const initEventListners = function () {
@@ -88,17 +133,17 @@ const initTransformControls = function () {
   );
   control.setMode('rotate');
   control.addEventListener('dragging-changed', function (event) {});
-  control.attach(cube.core.center);
+  control.attach(cube.core);
 
   return control;
 };
 
 // eslint-disable-next-line import/prefer-default-export
 export function init() {
-  customScene.add(cube.core.center);
+  customScene.add(cube.core);
   initEventListners();
 
-  cube.core.center.add(axesHelper(1));
+  cube.core.add(axesHelper(4));
 
   animate(customCamera, customRenderer);
 }

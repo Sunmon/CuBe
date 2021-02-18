@@ -10,6 +10,7 @@ const PickHelper = {};
 PickHelper.pickPosition = { x: 0, y: 0 };
 PickHelper.pickStartedPosition = { x: 0, y: 0 };
 PickHelper.motioning = false;
+PickHelper.selected = null; // 마우스로 선택한 객체
 
 PickHelper.init = function () {
   this.raycaster = new Raycaster();
@@ -18,6 +19,18 @@ PickHelper.init = function () {
   this.raycaster.params.Line.threshold = 0.1;
 
   return this;
+};
+
+PickHelper.getCurrentIntersect = function (scene) {
+  return this.raycaster.intersectObjects(scene.children, true)[0];
+};
+
+PickHelper.getClosestSticker = function (scene, camera) {
+  this.raycaster.setFromCamera(this.pickPosition, camera);
+
+  return this.raycaster
+    .intersectObjects(scene.children, true)
+    .find(intersect => intersect.object.name === 'sticker');
 };
 
 PickHelper.pick = function (normalizedPosition, scene, camera, time) {
@@ -33,9 +46,10 @@ PickHelper.pick = function (normalizedPosition, scene, camera, time) {
     true,
   );
   if (intersectedObjects.length) {
-    this.pickedObject = intersectedObjects[0].object;
-    this.pickedObjectSavedColor = this.pickedObject.material.color.getHex();
-    this.pickedObject.material.color.setHex(
+    // this.pickedObject = intersectedObjects[0].object;
+    this.pickedObject = this.getClosestSticker(scene, camera)?.object;
+    this.pickedObjectSavedColor = this.pickedObject?.material.color.getHex();
+    this.pickedObject?.material.color.setHex(
       (time * 8) % 2 > 1 ? 0xffff00 : 0xff0000,
     );
   }
@@ -50,11 +64,12 @@ PickHelper.getCanvasRelativePosition = function (event, canvas) {
 };
 
 PickHelper.setPickPosition = function (event, canvas) {
-  const pos = this.getCanvasRelativePosition(event, canvas);
+  const gesture = (event.touches && event.targetTouches[0]) || event;
+  const pos = this.getCanvasRelativePosition(gesture, canvas);
   this.pickPosition.x = (pos.x / canvas.width) * 2 - 1;
   this.pickPosition.y = (pos.y / canvas.height) * -2 + 1; // Y 축을 뒤집었음
 
-  const clicked = event.type === 'mousedown' || event instanceof Touch;
+  const clicked = event.type === 'mousedown' || event.type === 'touchstart';
   if (clicked && !this.motioning) {
     this.setStartedPosition(this.pickPosition);
   }
