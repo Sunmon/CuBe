@@ -30,7 +30,6 @@ PickHelper.pick = function (time) {
   if (this.pickedObject) {
     this.resetPickedObject();
   }
-
   this.pickedObject = this.getClosestSticker(this.scene, this.camera);
   if (this.pickedObject) {
     this.twinklePickedObject(time);
@@ -57,16 +56,22 @@ PickHelper.twinklePickedObject = function (time) {
   );
 };
 
+PickHelper.saveCurrentPosition = function (event, canvas) {
+  this.setPickPosition(event, canvas);
+  if (this.isClickStart(event)) {
+    this.setStartedPosition(this.pickPosition);
+  }
+};
+
 PickHelper.setPickPosition = function (event, canvas) {
   const gesture = (event.touches && event.targetTouches[0]) || event;
   const pos = this.getCanvasRelativePosition(gesture, canvas);
   this.pickPosition.x = (pos.x / canvas.width) * 2 - 1;
   this.pickPosition.y = (pos.y / canvas.height) * -2 + 1; // Y 축을 뒤집었음
+};
 
-  const clicked = event.type === 'mousedown' || event.type === 'touchstart';
-  if (clicked && !this.motioning) {
-    this.setStartedPosition(this.pickPosition);
-  }
+PickHelper.isClickStart = function (event) {
+  return event.type === 'mousedown' || event.type === 'touchstart';
 };
 
 PickHelper.getCanvasRelativePosition = function (event, canvas) {
@@ -76,6 +81,7 @@ PickHelper.getCanvasRelativePosition = function (event, canvas) {
     y: ((event.clientY - rect.top) * canvas.height) / rect.height,
   };
 };
+
 PickHelper.setStartedPosition = function (pos) {
   this.pickStartedPosition = { ...pos };
   this.motioning = true;

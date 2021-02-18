@@ -17,7 +17,8 @@ const pickHelper = PickHelper.init(customScene, customCamera.getCamera());
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
-  pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
+  // pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
+  pickHelper.saveCurrentPosition(gesture, customRenderer.getCanvas());
   if (!pickHelper.motioning) return;
   if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
     const cubic = cube.selectedMesh.parent;
@@ -37,7 +38,8 @@ const clearUserGesture = function () {
 const initUserGesture = function (event) {
   event.preventDefault(); // 스크롤 이벤트 방지
 
-  pickHelper.setPickPosition(event, customRenderer.getCanvas());
+  // pickHelper.setPickPosition(event, customRenderer.getCanvas());
+  pickHelper.saveCurrentPosition(event, customRenderer.getCanvas());
   cube.selectedMesh = pickHelper.getClosestSticker(
     customScene,
     customCamera.getCamera(),
