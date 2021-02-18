@@ -6,4 +6,15 @@ const axesHelper = function (len) {
 };
 // const axesHelper = new AxesHelper(3);
 
-export { axesHelper };
+const isEmpty = function (object) {
+  if (object === null || object === undefined) return true;
+  if (Array.isArray(object)) {
+    if (!object.length) return true;
+    if (object.length > 1) return false;
+    return Array.isArray(object[0]) ? isEmpty(object[0]) : false;
+  }
+
+  return false;
+};
+
+export { axesHelper, isEmpty };

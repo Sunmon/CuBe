@@ -25,12 +25,12 @@ PickHelper.getCurrentIntersect = function (scene) {
   return this.raycaster.intersectObjects(scene.children, true)[0];
 };
 
-PickHelper.getClosestSticker = function (scene) {
+PickHelper.getClosestSticker = function (scene, camera) {
+  this.raycaster.setFromCamera(this.pickPosition, camera);
+
   return this.raycaster
     .intersectObjects(scene.children, true)
-    .find(
-      intersect => intersect.object.geometry.type === 'PlaneBufferGeometry',
-    );
+    .find(intersect => intersect.object.name === 'sticker');
 };
 
 PickHelper.pick = function (normalizedPosition, scene, camera, time) {
@@ -47,7 +47,7 @@ PickHelper.pick = function (normalizedPosition, scene, camera, time) {
   );
   if (intersectedObjects.length) {
     // this.pickedObject = intersectedObjects[0].object;
-    this.pickedObject = this.getClosestSticker(scene)?.object;
+    this.pickedObject = this.getClosestSticker(scene, camera)?.object;
     this.pickedObjectSavedColor = this.pickedObject?.material.color.getHex();
     this.pickedObject?.material.color.setHex(
       (time * 8) % 2 > 1 ? 0xffff00 : 0xff0000,
@@ -64,11 +64,12 @@ PickHelper.getCanvasRelativePosition = function (event, canvas) {
 };
 
 PickHelper.setPickPosition = function (event, canvas) {
-  const pos = this.getCanvasRelativePosition(event, canvas);
+  const gesture = (event.touches && event.targetTouches[0]) || event;
+  const pos = this.getCanvasRelativePosition(gesture, canvas);
   this.pickPosition.x = (pos.x / canvas.width) * 2 - 1;
   this.pickPosition.y = (pos.y / canvas.height) * -2 + 1; // Y 축을 뒤집었음
 
-  const clicked = event.type === 'mousedown' || event instanceof Touch;
+  const clicked = event.type === 'mousedown' || event.type === 'touchstart';
   if (clicked && !this.motioning) {
     this.setStartedPosition(this.pickPosition);
   }
