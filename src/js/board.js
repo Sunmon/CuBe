@@ -10,12 +10,14 @@ import PickHelper from './pickHelper.js';
 import { axesHelper, isEmpty } from '../common/common.js';
 import { CANVAS } from '../common/constants.js';
 
-const customCamera = CustomCamera.init();
+// const customCamera = CustomCamera.init();
+const customCamera = new CustomCamera();
 // const customRenderer = CustomRenderer.init();
 const customRenderer = new CustomRenderer(CANVAS);
 const customScene = new CustomScene();
 const cube = Cube.init();
-const pickHelper = new PickHelper(customScene.scene, customCamera.getCamera());
+// const pickHelper = new PickHelper(customScene.scene, customCamera.getCamera());
+const pickHelper = new PickHelper(customScene.scene, customCamera.camera);
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
@@ -44,7 +46,8 @@ const initUserGesture = function (event) {
   pickHelper.saveCurrentPosition(event, customRenderer.canvas);
   cube.selectedMesh = pickHelper.calculateClosestSticker(
     customScene.scene,
-    customCamera.getCamera(),
+    // customCamera.getCamera(),
+    customCamera.camera,
   );
   cube.saveCurrentStatus(cube.core, cube.selectedMesh);
 };
@@ -117,8 +120,10 @@ const render = function (camera, renderer, time) {
     // camera.updateAspect(renderer.getRendererAspect());
     camera.updateAspect(renderer.rendererAspect);
   }
-  pickHelper.pick(customScene.scene, camera.getCamera(), time);
-  renderer.render(customScene.scene, camera.getCamera());
+  // pickHelper.pick(customScene.scene, camera.getCamera(), time);
+  // renderer.render(customScene.scene, camera.getCamera());
+  pickHelper.pick(customScene.scene, camera.camera, time);
+  renderer.render(customScene.scene, camera.camera);
 };
 
 const animate = function (camera, renderer) {
@@ -129,7 +134,8 @@ const animate = function (camera, renderer) {
 
 const initTransformControls = function () {
   const control = new TransformControls(
-    customCamera.getCamera(),
+    // customCamera.getCamera(),
+    customCamera.camera,
     customRenderer.canvas,
     // customRenderer.renderer.domElement,
   );
