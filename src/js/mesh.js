@@ -11,61 +11,54 @@ import {
   Line,
 } from '../../lib/three.module.js';
 
-const createBoxGeometry = function (width, height, depth) {
-  return new BoxGeometry(width, height, depth);
-};
+export default class CustomMesh {
+  static createPlane(width, height, color) {
+    const geometry = CustomMesh.createPlaneGeometry(width, height);
+    const material = CustomMesh.createMaterial(color);
 
-const createMaterial = function (color) {
-  // TODO: 다른 면들까지 추가하고나면, DoubleSide 삭제하기
-  return new MeshPhongMaterial({
-    color,
-    // side: DoubleSide,
-    opacity: 0.5,
-    transparent: true,
-  });
-};
+    return new Mesh(geometry, material);
+  }
 
-const createPlaneGeometry = function (width, height) {
-  return new PlaneBufferGeometry(width, height);
-};
+  static createBox(width, height, depth, color) {
+    const geometry = CustomMesh.createBoxGeometry(width, height, depth);
+    const material = CustomMesh.createMaterial(color);
 
-// namespace - 메쉬 관련된 함수 모음
-const CustomMesh = {};
+    return new Mesh(geometry, material);
+  }
 
-// TODO: 넓은 3x3짜리 plane은 Object3D 씬그래프로 변경할 것
-// 일단 보기 좋게 3x3짜리도 Plane으로 놔둠
-CustomMesh.createPlane = function (width, height, color) {
-  const geometry = createPlaneGeometry(width, height);
-  const material = createMaterial(color);
+  static createPlaneGeometry(width, height) {
+    return new PlaneBufferGeometry(width, height);
+  }
 
-  return new Mesh(geometry, material);
-};
+  static createBoxGeometry(width, height, depth) {
+    return new BoxGeometry(width, height, depth);
+  }
 
-CustomMesh.createBox = function (width, height, depth, color) {
-  const geometry = createBoxGeometry(width, height, depth);
-  const material = createMaterial(color);
+  static createLine(from, to) {
+    const material = new LineBasicMaterial({ color: 0xffaa00 });
+    const points = [new Vector3(...from), new Vector3(...to)];
+    const geometry = new BufferGeometry().setFromPoints(points);
+    const line = new Line(geometry, material);
 
-  return new Mesh(geometry, material);
-};
+    return line;
+  }
 
-CustomMesh.getCenterPoint = function (mesh) {
-  const { geometry } = mesh;
-  const center = new Vector3();
+  static createMaterial(color) {
+    return new MeshPhongMaterial({
+      color,
+      // side: DoubleSide,
+      opacity: 0.5,
+      transparent: true,
+    });
+  }
 
-  geometry.computeBoundingBox();
-  geometry.boundingBox.getCenter(center);
-  mesh.localToWorld(center);
+  static getCenterPoint(mesh) {
+    const { geometry } = mesh;
+    const center = new Vector3();
+    geometry.computeBoundingBox();
+    geometry.boundingBox.getCenter(center);
+    mesh.localToWorld(center);
 
-  return center;
-};
-
-CustomMesh.createLine = function (from, to) {
-  const material = new LineBasicMaterial({ color: 0xffaa00 });
-  const points = [new Vector3(...from), new Vector3(...to)];
-  const geometry = new BufferGeometry().setFromPoints(points);
-  const line = new Line(geometry, material);
-
-  return line;
-};
-
-export default CustomMesh;
+    return center;
+  }
+}
