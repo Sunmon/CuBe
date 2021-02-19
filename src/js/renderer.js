@@ -20,8 +20,8 @@ export default class CustomRenderer {
     const pixelRatio = window.devicePixelRatio;
 
     return {
-      width: (this.canvas.clientWidth * pixelRatio) | 0,
-      height: (this.canvas.clientHeight * pixelRatio) | 0,
+      width: (this.canvas.clientWidth * pixelRatio) | 0, // round down
+      height: (this.canvas.clientHeight * pixelRatio) | 0, // round down
     };
   }
 
