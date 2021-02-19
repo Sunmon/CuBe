@@ -6,14 +6,14 @@ import CustomCamera from './camera.js';
 import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
-import { PickHelper } from './motion.js';
+import PickHelper from './pickHelper.js';
 import { axesHelper, isEmpty } from '../common/common.js';
 
 const customCamera = CustomCamera.init();
 const customRenderer = CustomRenderer.init();
 const customScene = new CustomScene();
 const cube = Cube.init();
-const pickHelper = PickHelper.init(customScene.scene, customCamera.getCamera());
+const pickHelper = new PickHelper(customScene.scene, customCamera.getCamera());
 
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
@@ -40,7 +40,7 @@ const initUserGesture = function (event) {
 
   // pickHelper.setPickPosition(event, customRenderer.getCanvas());
   pickHelper.saveCurrentPosition(event, customRenderer.getCanvas());
-  cube.selectedMesh = pickHelper.getClosestSticker(
+  cube.selectedMesh = pickHelper.calculateClosestSticker(
     customScene.scene,
     customCamera.getCamera(),
   );
