@@ -8,9 +8,11 @@ import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
 import PickHelper from './pickHelper.js';
 import { axesHelper, isEmpty } from '../common/common.js';
+import { CANVAS } from '../common/constants.js';
 
 const customCamera = CustomCamera.init();
-const customRenderer = CustomRenderer.init();
+// const customRenderer = CustomRenderer.init();
+const customRenderer = new CustomRenderer(CANVAS);
 const customScene = new CustomScene();
 const cube = Cube.init();
 const pickHelper = new PickHelper(customScene.scene, customCamera.getCamera());
@@ -18,7 +20,7 @@ const pickHelper = new PickHelper(customScene.scene, customCamera.getCamera());
 const followUserGesture = function (event) {
   const gesture = (event.touches && event.touches[0]) || event;
   // pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  pickHelper.saveCurrentPosition(gesture, customRenderer.getCanvas());
+  pickHelper.saveCurrentPosition(gesture, customRenderer.canvas);
   if (!pickHelper.motioning) return;
   if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
     const cubic = cube.selectedMesh.parent;
@@ -39,7 +41,7 @@ const initUserGesture = function (event) {
   event.preventDefault(); // 스크롤 이벤트 방지
 
   // pickHelper.setPickPosition(event, customRenderer.getCanvas());
-  pickHelper.saveCurrentPosition(event, customRenderer.getCanvas());
+  pickHelper.saveCurrentPosition(event, customRenderer.canvas);
   cube.selectedMesh = pickHelper.calculateClosestSticker(
     customScene.scene,
     customCamera.getCamera(),
@@ -112,7 +114,8 @@ const initEventListners = function () {
 const render = function (camera, renderer, time) {
   time *= 0.005;
   if (renderer.resizeRenderToDisplaySize()) {
-    camera.updateAspect(renderer.getRendererAspect());
+    // camera.updateAspect(renderer.getRendererAspect());
+    camera.updateAspect(renderer.rendererAspect);
   }
   pickHelper.pick(customScene.scene, camera.getCamera(), time);
   renderer.render(customScene.scene, camera.getCamera());
@@ -127,7 +130,8 @@ const animate = function (camera, renderer) {
 const initTransformControls = function () {
   const control = new TransformControls(
     customCamera.getCamera(),
-    customRenderer.renderer.domElement,
+    customRenderer.canvas,
+    // customRenderer.renderer.domElement,
   );
   control.setMode('rotate');
   control.addEventListener('dragging-changed', function (event) {});
