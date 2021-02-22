@@ -2,7 +2,12 @@
 import CustomMesh from './mesh.js';
 import * as TWEEN from '../../lib/tween.esm.js';
 import * as THREE from '../../lib/three.module.js';
-import { CUBE_SIZE, CUBIC_SIZE, DEFAULT_COLORS } from '../common/constants.js';
+import {
+  CUBE_SIZE,
+  CUBIC_PER_ROW,
+  CUBIC_SIZE,
+  DEFAULT_COLORS,
+} from '../common/constants.js';
 import { isEmpty } from '../common/common.js';
 
 export default class Cube {
@@ -80,20 +85,20 @@ export default class Cube {
   }
 
   setCubicsDefaultPositions() {
-    const xyz = [-CUBIC_SIZE, 0, CUBIC_SIZE];
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
-        for (let k = 0; k < 3; k++) {
-          this.cubics[i][j][k].position.set(xyz[i], xyz[j], xyz[k]);
+    const pos = [-CUBIC_SIZE, 0, CUBIC_SIZE];
+    for (let i = 0; i < CUBIC_PER_ROW; i++) {
+      for (let j = 0; j < CUBIC_PER_ROW; j++) {
+        for (let k = 0; k < CUBIC_PER_ROW; k++) {
+          this.cubics[i][j][k].position.set(pos[i], pos[j], pos[k]);
         }
       }
     }
   }
 
   addCubicsToCore() {
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
-        for (let k = 0; k < 3; k++) {
+    for (let i = 0; i < CUBIC_PER_ROW; i++) {
+      for (let j = 0; j < CUBIC_PER_ROW; j++) {
+        for (let k = 0; k < CUBIC_PER_ROW; k++) {
           this.core.add(this.cubics[i][j][k]);
           this.cubics[i][j][k].position.round();
         }
@@ -103,7 +108,7 @@ export default class Cube {
 
   addStickersToCubics() {
     ['x0', 'x2', 'y0', 'y2', 'z0', 'z2'].forEach(([f, v], i) => {
-      const layer = Cube.filterCubicsByLayer(f, +v, this.cubics);
+      const layer = this.filterCubicsByLayer(f, +v);
       const vector = Cube.calculateVectorFromChar(f, v - 1);
       const lookAt = vector.clone().setLength(CUBIC_SIZE * 2);
       layer.forEach(row =>
@@ -139,10 +144,9 @@ export default class Cube {
     this.rotatingAxes = this.calculateLocalRotatingAxes(selected);
     this.rotatingAxesChar = Cube.calculateCharFromVector(this.rotatingAxes);
 
-    return Cube.filterCubicsByLayer(
+    return this.filterCubicsByLayer(
       this.rotatingAxesChar,
       cubic.position[this.rotatingAxesChar] + 1,
-      this.cubics,
     );
   }
 
@@ -203,11 +207,11 @@ export default class Cube {
   // 평면에 해당하는 3x3 벡터를 리턴
   // array는 새로 만들어지지만, 안의 객체는 레퍼런스 복사
   // TODO: cubics 전역변수로 변경
-  static filterCubicsByLayer(plane, value, cubics) {
+  filterCubicsByLayer(plane, value) {
     value = Math.round(value);
-    if (plane === 'x') return [...cubics[value]];
-    if (plane === 'y') return cubics.map(y => y[value]);
-    if (plane === 'z') return cubics.map(y => y.map(z => z[value]));
+    if (plane === 'x') return [...this.cubics[value]];
+    if (plane === 'y') return this.cubics.map(y => y[value]);
+    if (plane === 'z') return this.cubics.map(y => y.map(z => z[value]));
 
     return [];
   }
@@ -444,8 +448,8 @@ export default class Cube {
     const newMatrix = Cube.createRotatedMatrix(this.rotatingLayer, dir);
 
     // change
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
+    for (let i = 0; i < CUBIC_PER_ROW; i++) {
+      for (let j = 0; j < CUBIC_PER_ROW; j++) {
         this.rotatingLayer[i][j] = newMatrix[i][j]; // NOTE:  이 줄이 하는일ㄹ이 뭐지??
         this.rotatingLayer[i][j].position.round();
       }
@@ -457,24 +461,24 @@ export default class Cube {
     const cubic = this.selectedMesh.parent;
     if (this.rotatingAxesChar === 'x') {
       // rotatingCubics 는 selectedMesh.position['x'] +1 을 골랐음
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
+      for (let i = 0; i < CUBIC_PER_ROW; i++) {
+        for (let j = 0; j < CUBIC_PER_ROW; j++) {
           // this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
           this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
         }
       }
     } else if (this.rotatingAxesChar === 'y') {
       // rotatingCubics 는 selectedMesh.position['y'] +1 을 골랐음
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
+      for (let i = 0; i < CUBIC_PER_ROW; i++) {
+        for (let j = 0; j < CUBIC_PER_ROW; j++) {
           // this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
           this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
         }
       }
     } else if (this.rotatingAxesChar === 'z') {
       // rotatingCubics 는 selectedMesh.position['z'] +1 을 골랐음
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
+      for (let i = 0; i < CUBIC_PER_ROW; i++) {
+        for (let j = 0; j < CUBIC_PER_ROW; j++) {
           // this.cubics[i][j][cubic.position.z + 1] = newMatrix[i][j];
           this.cubics[i][j][cubic.position.z + 1] = newMatrix[i][j];
         }
