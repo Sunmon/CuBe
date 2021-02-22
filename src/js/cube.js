@@ -137,11 +137,7 @@ export default class Cube {
   }
 
   calculateRotatingLayer(cubic) {
-    return this.calculateCubicsToRotate(this.selectedMesh, cubic);
-  }
-
-  calculateCubicsToRotate(selected, cubic) {
-    this.rotatingAxes = this.calculateLocalRotatingAxes(selected);
+    this.rotatingAxes = this.calculateLocalRotatingAxes(this.selectedMesh);
     this.rotatingAxesChar = Cube.calculateCharFromVector(this.rotatingAxes);
 
     return this.filterCubicsByLayer(
