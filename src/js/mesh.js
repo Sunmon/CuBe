@@ -10,8 +10,29 @@ import {
   Mesh,
   Line,
 } from '../../lib/three.module.js';
+import { CUBIC_SIZE } from '../common/constants.js';
 
 export default class CustomMesh {
+  // FIXME: mesh 로 뺄까?
+  static createCubic(color) {
+    const cubic = CustomMesh.createBox(
+      CUBIC_SIZE,
+      CUBIC_SIZE,
+      CUBIC_SIZE,
+      color,
+    );
+    cubic.name = 'cubic';
+
+    return cubic;
+  }
+
+  static createSticker(color) {
+    const sticker = CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
+    sticker.name = 'sticker';
+
+    return sticker;
+  }
+
   static createPlane(width, height, color) {
     const geometry = CustomMesh.createPlaneGeometry(width, height);
     const material = CustomMesh.createMaterial(color);

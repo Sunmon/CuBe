@@ -2,7 +2,7 @@
 import CustomMesh from './mesh.js';
 import * as TWEEN from '../../lib/tween.esm.js';
 import * as THREE from '../../lib/three.module.js';
-import { CUBE_SIZE, CUBIC_SIZE } from '../common/constants.js';
+import { CUBE_SIZE, CUBIC_SIZE, DEFAULT_COLORS } from '../common/constants.js';
 import { isEmpty } from '../common/common.js';
 
 export default class Cube {
@@ -22,9 +22,11 @@ export default class Cube {
     // const selectedWorldNormal = new THREE.Vector3(); // 선택한 메쉬의 월드 노멀 벡터
     // const needCubicsUpdate = false;
 
-    this.core = new THREE.Object3D();
+    // this.core = new THREE.Object3D();
+    this.core = Cube.createCore();
     this.lastCubeQuaternion = new THREE.Quaternion();
-    this.cubicsLayerMatrix = [[[]]]; // 큐빅 배치 저장 (model). 항상 값을 일정하게 유지해야 한다
+    // this.cubics = [[[]]]; // 큐빅 배치 저장 (model). 항상 값을 일정하게 유지해야 한다
+    this.cubics = Cube.createCubics();
     this.selectedMesh = null; // 마우스로 선택한 메쉬
     this.clockwise = false;
     this.rotatingLayer = [[]]; // 회전할 평면에 속하는 큐빅들을 임시로 저장하는 배열
@@ -39,22 +41,35 @@ export default class Cube {
     this.createCube();
   }
 
+  static createCore() {
+    const core = new THREE.Object3D();
+    core.name = 'core';
+
+    return core;
+  }
+
+  static createCubics() {
+    return [...Array(3)].map(() =>
+      [...Array(3)].map(() =>
+        [...Array(3)].map(() => CustomMesh.createCubic(0xffffff)),
+      ),
+    );
+  }
+
   createCube() {
     // FIXME: refactor
-    this.core.name = 'core';
     // cubics[x][y][z]
-    const cubics = Cube.createCubicsLayerMatrix();
-    Cube.setCubicsPosition(cubics);
-    this.addCubicsToCore(cubics);
-    this.addStickers(cubics);
-    this.cubicsLayerMatrix = cubics;
+    this.cubics = Cube.createCubics();
+    this.addStickersToCubics();
+    this.setCubicsDefaultPositions();
+    this.addCubicsToCore();
 
     // 임시용 큐브 이름 붙이기
     let name = 65;
     for (let i = 2; i >= 0; i--) {
       for (let j = 2; j >= 0; j--) {
         for (let k = 2; k >= 0; k--) {
-          this.cubicsLayerMatrix[i][j][k].name = String.fromCharCode(name);
+          this.cubics[i][j][k].name = String.fromCharCode(name);
           name++;
         }
       }
@@ -64,99 +79,49 @@ export default class Cube {
     return this;
   }
 
-  // TODO: 이름을 바꿔서.. createCubi~ 이건 모든 과정을 통합한 메소드로..
-  static createCubicsLayerMatrix() {
-    return [...Array(3)].map(() =>
-      [...Array(3)].map(() =>
-        [...Array(3)].map(() => this.createCubic(0xffffff)),
-      ),
-    );
-  }
-
-  // FIXME: mesh 로 뺄까?
-  static createCubic(color) {
-    const cubic = CustomMesh.createBox(
-      CUBIC_SIZE,
-      CUBIC_SIZE,
-      CUBIC_SIZE,
-      color,
-    );
-    cubic.name = 'cubic';
-
-    return cubic;
-  }
-
-  static setCubicsPosition(cubics) {
+  setCubicsDefaultPositions() {
     const xyz = [-CUBIC_SIZE, 0, CUBIC_SIZE];
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
         for (let k = 0; k < 3; k++) {
-          cubics[i][j][k].position.set(xyz[i], xyz[j], xyz[k]);
+          this.cubics[i][j][k].position.set(xyz[i], xyz[j], xyz[k]);
         }
       }
     }
   }
 
-  addCubicsToCore(cubics) {
+  addCubicsToCore() {
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
         for (let k = 0; k < 3; k++) {
-          this.core.add(cubics[i][j][k]);
-          cubics[i][j][k].position.round();
-          // this.core.center.attach(cubics[i][j][k]);
+          this.core.add(this.cubics[i][j][k]);
+          this.cubics[i][j][k].position.round();
         }
       }
     }
   }
 
-  addStickers(cubics) {
-    const colors = [0xff6663, 0xfeb144, 0xfdfd97, 0x9ee09e, 0x9ec1cf, 0xcc99c9];
-    const filters = ['x0', 'x2', 'y0', 'y2', 'z0', 'z2'];
-    const rotateDir = ['y', 'y', 'x', 'x', 'y', 'y'];
-    const rotateDist = [
-      -Math.PI / 2,
-      Math.PI / 2,
-      Math.PI / 2,
-      -Math.PI / 2,
-      Math.PI,
-      0,
-    ];
-    const planes = filters.map(([f, v]) =>
-      Cube.filterCubicsByPlane(f, +v, cubics),
-    );
-
-    planes.forEach((plane, i) => {
-      const [dir, val] = filters[i];
-      plane.forEach(row => {
+  addStickersToCubics() {
+    ['x0', 'x2', 'y0', 'y2', 'z0', 'z2'].forEach(([f, v], i) => {
+      const layer = Cube.filterCubicsByLayer(f, +v, this.cubics);
+      const vector = Cube.calculateVectorFromChar(f, v - 1);
+      const lookAt = vector.clone().setLength(CUBIC_SIZE * 2);
+      layer.forEach(row =>
         row.forEach(col => {
-          const sticker = Cube.createPlane(colors[i]);
-          sticker.name = 'sticker';
-          Cube.translateObject(dir, ((val - 1) * CUBIC_SIZE) / 2, sticker);
-          Cube.rotateObject(rotateDir[i], rotateDist[i], sticker);
+          const sticker = CustomMesh.createSticker(DEFAULT_COLORS[i]);
+          sticker.translateOnAxis(vector, CUBIC_SIZE / 2);
+          sticker.lookAt(lookAt);
           col.add(sticker);
-        });
-      });
+        }),
+      );
     });
   }
 
-  static createPlane(color) {
-    return CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
-  }
-
-  static translateObject(axis, value, object) {
-    if (axis === 'x') return object.translateX(value);
-    if (axis === 'y') return object.translateY(value);
-    if (axis === 'z') return object.translateZ(value);
-
-    return null;
-  }
-
-  static rotateObject(axis, value, object) {
-    if (axis === 'x') return object.rotateX(value);
-    if (axis === 'y') return object.rotateY(value);
-    if (axis === 'z') return object.rotateZ(value);
-
-    return null;
+  static addStickerToCubic(cubic, sticker, direction) {
+    const lookAt = direction.clone().setLength(CUBIC_SIZE * 2);
+    sticker.translateOnAxis(direction, CUBIC_SIZE / 2);
+    sticker.lookAt(lookAt);
+    cubic.add(sticker);
   }
 
   saveCurrentStatus() {
@@ -174,11 +139,10 @@ export default class Cube {
     this.rotatingAxes = this.calculateLocalRotatingAxes(selected);
     this.rotatingAxesChar = Cube.calculateCharFromVector(this.rotatingAxes);
 
-    return Cube.filterCubicsByPlane(
+    return Cube.filterCubicsByLayer(
       this.rotatingAxesChar,
       cubic.position[this.rotatingAxesChar] + 1,
-      // this.cubics,
-      this.cubicsLayerMatrix,
+      this.cubics,
     );
   }
 
@@ -229,9 +193,17 @@ export default class Cube {
     return ['x', 'y', 'z'].find(axes => Math.abs(vector[axes]) === 1);
   }
 
+  static calculateVectorFromChar(char, val = 1) {
+    const vector = new THREE.Vector3();
+    vector[char] = val;
+
+    return vector;
+  }
+
   // 평면에 해당하는 3x3 벡터를 리턴
   // array는 새로 만들어지지만, 안의 객체는 레퍼런스 복사
-  static filterCubicsByPlane(plane, value, cubics) {
+  // TODO: cubics 전역변수로 변경
+  static filterCubicsByLayer(plane, value, cubics) {
     value = Math.round(value);
     if (plane === 'x') return [...cubics[value]];
     if (plane === 'y') return cubics.map(y => y[value]);
@@ -488,7 +460,7 @@ export default class Cube {
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
           // this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
-          this.cubicsLayerMatrix[cubic.position.x + 1][i][j] = newMatrix[i][j];
+          this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
         }
       }
     } else if (this.rotatingAxesChar === 'y') {
@@ -496,7 +468,7 @@ export default class Cube {
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
           // this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
-          this.cubicsLayerMatrix[i][cubic.position.y + 1][j] = newMatrix[i][j];
+          this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
         }
       }
     } else if (this.rotatingAxesChar === 'z') {
@@ -504,7 +476,7 @@ export default class Cube {
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
           // this.cubics[i][j][cubic.position.z + 1] = newMatrix[i][j];
-          this.cubicsLayerMatrix[i][j][cubic.position.z + 1] = newMatrix[i][j];
+          this.cubics[i][j][cubic.position.z + 1] = newMatrix[i][j];
         }
       }
     }
@@ -538,10 +510,10 @@ export default class Cube {
           for (let k = 0; k < 3; k++) {
             str += `(${Math.round(
               // this.cubics[i][j][k].position.x,
-              this.cubicsLayerMatrix[i][j][k].position.x,
-            )},${Math.round(
-              this.cubicsLayerMatrix[i][j][k].position.y,
-            )},${Math.round(this.cubicsLayerMatrix[i][j][k].position.z)}), `;
+              this.cubics[i][j][k].position.x,
+            )},${Math.round(this.cubics[i][j][k].position.y)},${Math.round(
+              this.cubics[i][j][k].position.z,
+            )}), `;
           }
           str += '\n';
         }
@@ -568,7 +540,7 @@ export default class Cube {
         let str = '';
         for (let j = 0; j < 3; j++) {
           for (let k = 0; k < 3; k++) {
-            str += `${this.cubicsLayerMatrix[i][j][k].name} `;
+            str += `${this.cubics[i][j][k].name} `;
           }
           str += '\n';
         }
