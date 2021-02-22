@@ -309,7 +309,6 @@ export default class Cube {
   }
 
   static calculateMajorAxis(delta, local) {
-    // FIXME: 이렇게 안 하고 그냥 큰 값을 해당 축에 박는 방식으로 할 수 있지 않나?
     const majorX = new THREE.Vector3(delta.y, -delta.x, 0);
     const majorZ = new THREE.Vector3(0, -delta.x, -delta.y);
 
@@ -322,7 +321,7 @@ export default class Cube {
   }
 
   slerp(clickStart, clickEnd, object = this.core) {
-    const userDirection = this.getUserDirection(clickStart, clickEnd); // world 결과 리턴
+    const userDirection = this.getUserDirection(clickStart, clickEnd); // world 기준 방향 리턴
     const destination = Cube.getCloserDirection(
       object,
       this.lastCubeQuaternion,
@@ -412,7 +411,7 @@ export default class Cube {
 
   static getCloserDirection(object, origin, direction) {
     const dest = new THREE.Quaternion().multiplyQuaternions(direction, origin);
-    if (object.quaternion.angleTo(origin) < object.quaternion.angleTo(dest)) {
+    if (object.quaternion.angleTo(origin) < Math.PI / 6) {
       dest.copy(origin);
     }
 
