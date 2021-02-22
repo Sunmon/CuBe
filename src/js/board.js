@@ -15,7 +15,8 @@ const customCamera = new CustomCamera();
 // const customRenderer = CustomRenderer.init();
 const customRenderer = new CustomRenderer(CANVAS);
 const customScene = new CustomScene();
-const cube = Cube.init();
+// const cube = Cube.init();
+const cube = new Cube();
 // const pickHelper = new PickHelper(customScene.scene, customCamera.getCamera());
 const pickHelper = new PickHelper(customScene.scene, customCamera.camera);
 
@@ -28,7 +29,7 @@ const followUserGesture = function (event) {
     const cubic = cube.selectedMesh.parent;
     const objectScene = customScene.scene.getObjectByName('objectScene');
     cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
-    cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
+    Cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
   }
 
   cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
@@ -49,7 +50,8 @@ const initUserGesture = function (event) {
     // customCamera.getCamera(),
     customCamera.camera,
   );
-  cube.saveCurrentStatus(cube.core, cube.selectedMesh);
+  // cube.saveCurrentStatus(cube.core, cube.selectedMesh);
+  cube.saveCurrentStatus();
 };
 
 const alreadyClear = function () {
