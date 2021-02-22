@@ -23,4 +23,8 @@ const setObjectPosition = function (object, x, y, z) {
   object.z = z;
 };
 
-export { axesHelper, isEmpty, setObjectPosition };
+const swap = function (a, b) {
+  [a, b] = [b, a];
+};
+
+export { axesHelper, isEmpty, setObjectPosition, swap };

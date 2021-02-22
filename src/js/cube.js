@@ -7,6 +7,8 @@ import {
   CUBIC_PER_ROW,
   CUBIC_SIZE,
   DEFAULT_COLORS,
+  VELOCITY,
+  WEIGHT,
 } from '../common/constants.js';
 import { isEmpty } from '../common/common.js';
 
@@ -223,20 +225,17 @@ export default class Cube {
   }
 
   rotateBody(start, current) {
-    const delta = new THREE.Vector2(start.x - current.x, start.y - current.y);
-    this.mouseDelta = delta;
-    if (this.mouseDirection || this.updateMouseDirection(delta)) {
-      const direction = this.mouseDirection;
-      const weight = 10; // 마우스를 이동하는 방향으로 큐브를 돌리기위함
-      const value = Math.abs(delta[direction]);
-      const weightedDelta = delta.clone();
-      weightedDelta[direction] *= weight;
-      weightedDelta.normalize();
+    this.mouseDelta.set(start.x - current.x, start.y - current.y);
+    // 마우스를 후에 다른 방향으로 움직이더라도, 처음 움직였던 방향으로만 움직이기 위해 mouseDirection이 필요함
+    if (this.mouseDirection || this.updateMouseDirection(this.mouseDelta)) {
+      const delta = this.mouseDelta.clone();
+      const value = Math.abs(delta[this.mouseDirection]);
+      delta[this.mouseDirection] *= WEIGHT;
+      delta.normalize();
       if (!this.selectedMesh) {
-        this.rotateCore(start, weightedDelta, value);
-      } else {
-        const velocity = 0.1;
-        this.rotateCubicsByScene(weightedDelta, value + velocity);
+        this.rotateCore(start, delta, value);
+      } else if (this.rotatingAxesChar) {
+        this.rotateCubicsByScene(delta, value + VELOCITY);
       }
     }
   }
@@ -251,46 +250,75 @@ export default class Cube {
     return ['x', 'y'].find(val => Math.abs(delta[val]) > THRESHOLD);
   }
 
+  static isDeltaOverThreshold(delta) {
+    return Cube.calculateMouseDirection(delta);
+  }
+
   rotateCore(start, delta, value) {
-    const vector = {
-      x: () =>
-        start.y > 0
-          ? new THREE.Vector3(delta.y, delta.x, 0)
-          : new THREE.Vector3(delta.y, -delta.x, 0),
-      y: () =>
-        start.x > 0
-          ? new THREE.Vector3(0, delta.x, -delta.y)
-          : new THREE.Vector3(delta.y, delta.x, 0),
-    };
+    if (this.clickedBehindCube(start)) {
+      Cube.inverseVector(delta, 'x');
+    }
+
+    const axis = this.mouseDirection === 'x' ? 'y' : start.x > 0 ? 'z' : 'x';
+    const base = Cube.calculateMajorAxis(delta, this.mouseDelta);
     const temp = new THREE.Quaternion();
-    temp.setFromAxisAngle(vector[this.mouseDirection](start), value);
+    temp.setFromAxisAngle(base(axis), value);
     this.core.setRotationFromQuaternion(
       temp.multiply(this.lastCubeQuaternion).normalize(),
     );
   }
 
-  rotateCubicsByScene(delta, value) {
-    if (!this.rotatingAxesChar) return;
-    const localVector = this.rotatingAxes;
-    const worldVector = this.core.localToWorld(localVector.clone()).round();
-    const v = Cube.calculateCharFromVector(worldVector);
-    const worldNormal = Cube.getWorldNormal(this.selectedMesh);
-    if (worldNormal.y === 1 && this.mouseDirection === 'x') {
-      [delta.x, delta.y] = [delta.y, delta.x];
-    }
-    const vertical = new THREE.Vector3(0, -delta.x, -delta.y);
-    const horizontal = new THREE.Vector3(delta.y, -delta.x, 0);
-    const vector = {
-      x: () => horizontal,
-      y: local => (local.y === 1 ? vertical : horizontal),
-      z: () => vertical,
-    };
+  clickedBehindCube(start) {
+    return this.mouseDirection === 'x' && start.y > 0;
+  }
 
+  static inverseVector(delta, axis) {
+    delta[axis] = -delta[axis];
+  }
+
+  rotateCubicsByScene(delta, value) {
+    if (this.clickedCubeUpside()) {
+      Cube.swapVectorXY(delta);
+    }
     const temp = new THREE.Quaternion();
-    temp.setFromAxisAngle(vector[v](localVector), value);
+    temp.setFromAxisAngle(this.calculateBaseVectorOfRotatingAxes(delta), value);
     this.getObjectScene().setRotationFromQuaternion(
       temp.multiply(this.lastCubeQuaternion).normalize(),
     );
+  }
+
+  clickedCubeUpside() {
+    const worldNormal = Cube.getWorldNormal(this.selectedMesh);
+    return worldNormal.y === 1 && this.mouseDirection === 'x';
+  }
+
+  static swapVectorXY(delta) {
+    [delta.x, delta.y] = [delta.y, delta.x];
+  }
+
+  calculateBaseVectorOfRotatingAxes(delta) {
+    const localVector = this.rotatingAxes;
+    const worldVector = this.core.localToWorld(localVector.clone()).round();
+    const base = Cube.calculateMajorAxis(delta, this.rotatingAxes);
+
+    return base(Cube.calculateCharFromVector(worldVector));
+  }
+
+  calculateWorldVectorFromLocal(localVector) {
+    return this.core.localToWorld(localVector.clone()).round();
+  }
+
+  static calculateMajorAxis(delta, local) {
+    // FIXME: 이렇게 안 하고 그냥 큰 값을 해당 축에 박는 방식으로 할 수 있지 않나?
+    const majorX = new THREE.Vector3(delta.y, -delta.x, 0);
+    const majorZ = new THREE.Vector3(0, -delta.x, -delta.y);
+
+    return rotatingAxis => {
+      if (rotatingAxis === 'x') return majorX;
+      if (rotatingAxis === 'y') return local.y === 1 ? majorZ : majorX;
+      if (rotatingAxis === 'z') return majorZ;
+      return new THREE.Vector3();
+    };
   }
 
   slerp(clickStart, clickEnd, object = this.core) {
