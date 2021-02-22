@@ -111,7 +111,7 @@ export default class Cube {
   addStickersToCubics() {
     ['x0', 'x2', 'y0', 'y2', 'z0', 'z2'].forEach(([f, v], i) => {
       const layer = this.filterCubicsByLayer(f, +v);
-      const vector = Cube.calculateVectorFromChar(f, v - 1);
+      const vector = Cube.charToVector(f, v - 1);
       const lookAt = vector.clone().setLength(CUBIC_SIZE * 2);
       layer.forEach(row =>
         row.forEach(col => {
@@ -140,7 +140,7 @@ export default class Cube {
 
   calculateRotatingLayer(cubic) {
     this.rotatingAxes = this.calculateLocalRotatingAxes(this.selectedMesh);
-    this.rotatingAxesChar = Cube.calculateCharFromVector(this.rotatingAxes);
+    this.rotatingAxesChar = Cube.vectorToChar(this.rotatingAxes);
 
     return this.filterCubicsByLayer(
       this.rotatingAxesChar,
@@ -172,30 +172,20 @@ export default class Cube {
   }
 
   static calculateWorldRotatingVector(worldNormal, mouseDirection) {
-    if (worldNormal.x === 1) {
-      return mouseDirection === 'x'
-        ? new THREE.Vector3(0, 1, 0)
-        : new THREE.Vector3(0, 0, 1);
-    }
-    if (worldNormal.y === 1) {
-      return mouseDirection === 'x'
-        ? new THREE.Vector3(0, 0, 1)
-        : new THREE.Vector3(1, 0, 0);
-    }
-    if (worldNormal.z === 1) {
-      return mouseDirection === 'x'
-        ? new THREE.Vector3(0, 1, 0)
-        : new THREE.Vector3(1, 0, 0);
-    }
+    const dir = {
+      x: mouseDirection === 'x' ? 'y' : 'z',
+      y: mouseDirection === 'x' ? 'z' : 'x',
+      z: mouseDirection === 'x' ? 'y' : 'x',
+    };
 
-    return new THREE.Vector3();
+    return Cube.charToVector(dir[Cube.vectorToChar(worldNormal)]);
   }
 
-  static calculateCharFromVector(vector) {
+  static vectorToChar(vector) {
     return ['x', 'y', 'z'].find(axes => Math.abs(vector[axes]) === 1);
   }
 
-  static calculateVectorFromChar(char, val = 1) {
+  static charToVector(char, val = 1) {
     const vector = new THREE.Vector3();
     vector[char] = val;
 
@@ -301,7 +291,7 @@ export default class Cube {
     const worldVector = this.core.localToWorld(localVector.clone()).round();
     const base = Cube.calculateMajorAxis(delta, this.rotatingAxes);
 
-    return base(Cube.calculateCharFromVector(worldVector));
+    return base(Cube.vectorToChar(worldVector));
   }
 
   calculateWorldVectorFromLocal(localVector) {
@@ -341,7 +331,7 @@ export default class Cube {
     if (!this.rotatingAxesChar) return;
     const localVector = this.rotatingAxes;
     const worldVector = this.core.localToWorld(localVector.clone()).round();
-    const v = Cube.calculateCharFromVector(worldVector);
+    const v = Cube.vectorToChar(worldVector);
 
     // 가로회전축, 세로회전축
     const vertical = new THREE.Vector3(0, -delta.x, -delta.y);
