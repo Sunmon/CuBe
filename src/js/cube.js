@@ -314,8 +314,8 @@ export default class Cube {
   }
 
   slerp(clickStart, clickEnd, object = this.core) {
-    const userDirection = this.getUserDirection(clickStart); // world 기준 방향 리턴
-    const destination = Cube.getCloserDirection(
+    const userDirection = this.worldDirectionQuaternion(clickStart); // world 기준 방향 리턴
+    const destination = Cube.getCloserQuaternion(
       object,
       this.lastCubeQuaternion,
       userDirection,
@@ -332,23 +332,28 @@ export default class Cube {
     const worldVector = this.core.localToWorld(localVector.clone()).round();
     const v = Cube.vectorToChar(worldVector);
     const base = Cube.calculateMajorAxis(delta, localVector);
-    const origin = new THREE.Vector3().copy(this.selectedWorldNormal).round();
-    const userDirection = new THREE.Vector3()
-      .copy(this.selectedWorldNormal)
-      .applyAxisAngle(base(v), Math.PI / 2)
-      .round();
-    const cur = new THREE.Vector3()
-      .copy(this.selectedWorldNormal)
-      .applyAxisAngle(base(v), Math.abs(delta[this.mouseDirection]) + 0.1);
+    const origin = Cube.rotatedVectorFrom(this.selectedWorldNormal);
+    const userDirection = Cube.rotatedVectorFrom(
+      this.selectedWorldNormal,
+      base(v),
+      Math.PI / 2,
+    );
+    // FIXME: getCloserVector 적용안됨
+    const cur = Cube.rotatedVectorFrom(
+      this.selectedWorldNormal,
+      base(v),
+      Math.abs(delta[this.mouseDirection]) + 0.1,
+    );
+    console.log(cur);
 
-    const func = (cur, origin, userDir) => {
-      return cur.angleTo(origin) < cur.angleTo(userDir) ? origin : userDir;
-    };
-    const destinationVector = func(cur, origin, userDirection);
+    const destinationVector = Cube.getCloserVector(cur, origin, userDirection);
     const destination = new THREE.Quaternion().setFromUnitVectors(
       origin,
       destinationVector,
     );
+
+    // const destTemp = Cube.getCloserQuaternion(cur, )
+    // const userTemp = this.worldDirectionQuaternion();
 
     this.needCubicsUpdate = !destinationVector.equals(origin);
 
@@ -362,7 +367,7 @@ export default class Cube {
     this.tweenObject(object, destination, clockwise);
   }
 
-  getUserDirection(clickStart) {
+  worldDirectionQuaternion(clickStart) {
     const units = ['z', 'y', 'x'].map(char => Cube.charToVector(char));
     const [other, k] = this.mouseDirection === 'x' ? ['y', 2] : ['x', 1];
     const [from, to] = clickStart[other] > 0 ? [2, 2 - k] : [0, k];
@@ -377,13 +382,31 @@ export default class Cube {
     return direction;
   }
 
-  static getCloserDirection(object, origin, direction) {
+  static rotatedVectorFrom(src, axis, angle) {
+    const vector = src.clone();
+    if (angle) {
+      vector.applyAxisAngle(axis, angle);
+    }
+
+    return vector.round();
+  }
+
+  static getCloserQuaternion(cur, origin, direction) {
     const dest = new THREE.Quaternion().multiplyQuaternions(direction, origin);
-    if (object.quaternion.angleTo(origin) < Math.PI / 6) {
+    console.log(cur.quaternion.angleTo(origin));
+    if (cur.quaternion.angleTo(origin) < Math.PI / 6) {
       dest.copy(origin);
     }
 
     return dest;
+  }
+
+  static getCloserVector(cur, origin, direction) {
+    // const dest =
+    // return cur.angleTo(origin) < cur.angleTo(direction) ? origin : userDir;
+    // return cur.angleTo(origin) < Math.PI / 6 ? origin : direction;
+    console.log(cur.angleTo(origin));
+    return cur.angleTo(origin) < 0.1 ? origin : direction;
   }
 
   tweenObject(object, destination, clockwise) {
