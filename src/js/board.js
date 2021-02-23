@@ -69,6 +69,7 @@ const rotateToClosest = function () {
       alert('no object scene');
       return;
     }
+    if (!cube.rotatingAxesChar) return;
     cube.slerpCubicsByScene(cube.mouseDelta, objectScene); // 특정 층만 회전
   }
 };

@@ -7,8 +7,10 @@ import {
   CUBIC_PER_ROW,
   CUBIC_SIZE,
   DEFAULT_COLORS,
+  THRESHOLD_ANGLE,
   VELOCITY,
   WEIGHT,
+  CLOCKWISE,
 } from '../common/constants.js';
 import { isEmpty } from '../common/common.js';
 
@@ -215,8 +217,6 @@ export default class Cube {
   }
 
   rotateBody(start, current) {
-    // TODO:
-    // this.mouseDelta.set(start.x - current.x, start.y - current.y); /* 원래값 */
     this.mouseDelta.set(current.x - start.x, current.y - start.y);
     // 마우스를 후에 다른 방향으로 움직이더라도, 처음 움직였던 방향으로만 움직이기 위해 mouseDirection이 필요함
     if (this.mouseDirection || this.updateMouseDirection(this.mouseDelta)) {
@@ -250,14 +250,12 @@ export default class Cube {
     if (this.clickedBehindCube(start)) {
       Cube.inverseVector(delta, 'x');
     }
-
     const axis = this.mouseDirection === 'x' ? 'y' : start.x > 0 ? 'z' : 'x';
     const base = Cube.calculateMajorAxis(delta, this.mouseDelta);
     const temp = new THREE.Quaternion();
     temp.setFromAxisAngle(base(axis), value);
     this.core.setRotationFromQuaternion(
       temp.multiply(this.lastCubeQuaternion).normalize(),
-      // temp.premultiply(this.lastCubeQuaternion).normalize(),
     );
   }
 
@@ -297,10 +295,6 @@ export default class Cube {
     return base(Cube.vectorToChar(worldVector));
   }
 
-  calculateWorldVectorFromLocal(localVector) {
-    return this.core.localToWorld(localVector.clone()).round();
-  }
-
   static calculateMajorAxis(delta, local) {
     const majorX = new THREE.Vector3(-delta.y, delta.x, 0);
     const majorZ = new THREE.Vector3(0, delta.x, delta.y);
@@ -320,51 +314,33 @@ export default class Cube {
       this.lastCubeQuaternion,
       userDirection,
     );
-
     this.needCubicsUpdate = !destination.equals(this.lastCubeQuaternion);
     this.tweenObject(object, destination, this.clockwise);
   }
 
-  // TODO:얘를 slerp로 바꿔버리자
   slerpCubicsByScene(delta, object) {
-    if (!this.rotatingAxesChar) return;
-    const localVector = this.rotatingAxes;
-    const worldVector = this.core.localToWorld(localVector.clone()).round();
-    const v = Cube.vectorToChar(worldVector);
-    const base = Cube.calculateMajorAxis(delta, localVector);
-    const origin = Cube.rotatedVectorFrom(this.selectedWorldNormal);
-    const userDirection = Cube.rotatedVectorFrom(
+    const base = this.calculateBaseVectorOfRotatingAxes(delta);
+    const origin = this.selectedWorldNormal.clone();
+    const userDirection = Cube.createRotatedVectorFrom(
       this.selectedWorldNormal,
-      base(v),
+      base,
       Math.PI / 2,
-    );
-    // FIXME: getCloserVector 적용안됨
-    const cur = Cube.rotatedVectorFrom(
+    ).round();
+    const cur = Cube.createRotatedVectorFrom(
       this.selectedWorldNormal,
-      base(v),
+      base,
       Math.abs(delta[this.mouseDirection]) + 0.1,
     );
-    console.log(cur);
-
-    const destinationVector = Cube.getCloserVector(cur, origin, userDirection);
-    const destination = new THREE.Quaternion().setFromUnitVectors(
+    const dest = Cube.getCloserVector(cur, origin, userDirection);
+    const destQuaternion = new THREE.Quaternion().setFromUnitVectors(
       origin,
-      destinationVector,
+      dest,
     );
 
-    // const destTemp = Cube.getCloserQuaternion(cur, )
-    // const userTemp = this.worldDirectionQuaternion();
-
-    this.needCubicsUpdate = !destinationVector.equals(origin);
-
-    destination.multiply(this.lastCubeQuaternion).normalize();
-
-    let clockwise = base(v)[v] < 0;
-    if (localVector.x + localVector.y + localVector.z < 0)
-      clockwise = !clockwise;
-
-    this.clockwise = clockwise;
-    this.tweenObject(object, destination, clockwise);
+    this.needCubicsUpdate = !dest.equals(origin);
+    destQuaternion.multiply(this.lastCubeQuaternion).normalize();
+    this.updateClockwise(origin, dest);
+    this.tweenObject(object, destQuaternion, this.clockwise);
   }
 
   worldDirectionQuaternion(clickStart) {
@@ -382,19 +358,13 @@ export default class Cube {
     return direction;
   }
 
-  static rotatedVectorFrom(src, axis, angle) {
-    const vector = src.clone();
-    if (angle) {
-      vector.applyAxisAngle(axis, angle);
-    }
-
-    return vector.round();
+  static createRotatedVectorFrom(src, axis, angle) {
+    return src.clone().applyAxisAngle(axis, angle);
   }
 
   static getCloserQuaternion(cur, origin, direction) {
     const dest = new THREE.Quaternion().multiplyQuaternions(direction, origin);
-    console.log(cur.quaternion.angleTo(origin));
-    if (cur.quaternion.angleTo(origin) < Math.PI / 6) {
+    if (cur.quaternion.angleTo(origin) < THRESHOLD_ANGLE) {
       dest.copy(origin);
     }
 
@@ -402,11 +372,34 @@ export default class Cube {
   }
 
   static getCloserVector(cur, origin, direction) {
-    // const dest =
-    // return cur.angleTo(origin) < cur.angleTo(direction) ? origin : userDir;
-    // return cur.angleTo(origin) < Math.PI / 6 ? origin : direction;
-    console.log(cur.angleTo(origin));
-    return cur.angleTo(origin) < 0.1 ? origin : direction;
+    return cur.angleTo(origin) < THRESHOLD_ANGLE ? origin : direction;
+  }
+
+  createWorldVectorFromLocal(localVector) {
+    return this.core.localToWorld(localVector.clone());
+  }
+
+  createLocalVectorFromWorld(worldVector) {
+    return this.core.worldToLocal(worldVector.clone());
+  }
+
+  updateClockwise(src, dest) {
+    const localSrc = this.createLocalVectorFromWorld(src).round();
+    const localDest = this.createLocalVectorFromWorld(dest).round();
+
+    this.clockwise = Cube.isClockwise(localSrc, localDest);
+  }
+
+  static isClockwise(src, dest) {
+    const srcInt = Cube.xyzToInt(Cube.vectorToChar(src));
+    const destInt = Cube.xyzToInt(Cube.vectorToChar(dest));
+    const reverse = src.getComponent(srcInt) * dest.getComponent(destInt) < 0;
+
+    return reverse ? !CLOCKWISE[srcInt][destInt] : CLOCKWISE[srcInt][destInt];
+  }
+
+  static xyzToInt(char) {
+    return { x: 0, y: 1, z: 2 }[char];
   }
 
   tweenObject(object, destination, clockwise) {
@@ -451,15 +444,14 @@ export default class Cube {
 
   updateCubicsArray(clockwise) {
     const dir = this.rotatingAxesChar === 'y' ? !clockwise : clockwise;
-    const clock = () => {
-      return this.rotatingAxesChar === 'x'
-        ? clockwise
-        : this.rotatingAxesChar === 'y'
-        ? !clockwise
-        : clockwise;
-    };
+    this.printNames(this.rotatingLayer);
+    const newMatrix = Cube.createRotatedMatrix(
+      this.rotatingLayer,
+      // this.clockwise,
+      dir,
+    );
 
-    const newMatrix = Cube.createRotatedMatrix(this.rotatingLayer, dir);
+    this.printNames(newMatrix);
 
     // change
     for (let i = 0; i < CUBIC_PER_ROW; i++) {
@@ -498,6 +490,8 @@ export default class Cube {
         }
       }
     }
+
+    this.printPositions();
   }
 
   // 3x3 매트릭스 90도 회전
