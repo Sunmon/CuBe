@@ -11,6 +11,7 @@ import {
   VELOCITY,
   WEIGHT,
   CLOCKWISE,
+  WHITE,
 } from '../common/constants.js';
 import { isEmpty } from '../common/common.js';
 
@@ -58,9 +59,9 @@ export default class Cube {
   }
 
   static createCubics() {
-    return [...Array(3)].map(() =>
-      [...Array(3)].map(() =>
-        [...Array(3)].map(() => CustomMesh.createCubic(0xffffff)),
+    return [...Array(CUBIC_PER_ROW)].map(() =>
+      [...Array(CUBIC_PER_ROW)].map(() =>
+        [...Array(CUBIC_PER_ROW)].map(() => CustomMesh.createCubic(WHITE)),
       ),
     );
   }
@@ -112,13 +113,10 @@ export default class Cube {
     ['x0', 'x2', 'y0', 'y2', 'z0', 'z2'].forEach(([f, v], i) => {
       const layer = this.filterCubicsByLayer(f, +v);
       const vector = Cube.charToVector(f, v - 1);
-      const lookAt = vector.clone().setLength(CUBIC_SIZE * 2);
       layer.forEach(row =>
         row.forEach(col => {
           const sticker = CustomMesh.createSticker(DEFAULT_COLORS[i]);
-          sticker.translateOnAxis(vector, CUBIC_SIZE / 2);
-          sticker.lookAt(lookAt);
-          col.add(sticker);
+          Cube.addStickerToCubic(col, sticker, vector);
         }),
       );
     });
