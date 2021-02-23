@@ -66,8 +66,6 @@ export default class Cube {
   }
 
   createCube() {
-    // FIXME: refactor
-    // cubics[x][y][z]
     this.cubics = Cube.createCubics();
     this.addStickersToCubics();
     this.setCubicsDefaultPositions();
@@ -315,7 +313,7 @@ export default class Cube {
       userDirection,
     );
     this.needCubicsUpdate = !destination.equals(this.lastCubeQuaternion);
-    this.tweenObject(object, destination, this.clockwise);
+    this.tweenObject(object, destination);
   }
 
   slerpCubicsByScene(delta, object) {
@@ -340,7 +338,7 @@ export default class Cube {
     this.needCubicsUpdate = !dest.equals(origin);
     destQuaternion.multiply(this.lastCubeQuaternion).normalize();
     this.updateClockwise(origin, dest);
-    this.tweenObject(object, destQuaternion, this.clockwise);
+    this.tweenObject(object, destQuaternion);
   }
 
   worldDirectionQuaternion(clickStart) {
@@ -402,30 +400,24 @@ export default class Cube {
     return { x: 0, y: 1, z: 2 }[char];
   }
 
-  tweenObject(object, destination, clockwise) {
+  tweenObject(object, destination) {
     new TWEEN.Tween(object.quaternion)
       .to(destination, 100)
       .start()
       .onComplete(() => {
         if (!isEmpty(this.rotatingLayer)) {
-          this.attachCubicsToCore();
-          if (this.needCubicsUpdate) {
-            this.updateCubicsArray(clockwise);
-          }
-          this.rotatingLayer = [[]];
+          this.settleCubics();
         }
-        const scene = this.core.parent;
-        const objectScene = scene.getObjectByName('objectScene');
-
-        objectScene.clear();
-        scene.remove(objectScene);
-
-        this.rotatingAxesChar = '';
-        this.rotatingAxes = null;
-        this.selectedMesh = null;
-        this.needCubicsUpdate = false;
         this.setLastCubeQuaternion(destination);
+        this.resetAll();
       });
+  }
+
+  settleCubics() {
+    this.attachCubicsToCore();
+    if (this.needCubicsUpdate) {
+      this.arrangeCubicsMatrixByPosition(this.clockwise);
+    }
   }
 
   attachCubicsToCore() {
@@ -438,71 +430,36 @@ export default class Cube {
 
   getObjectScene() {
     const scene = this.core.parent;
-
     return scene.getObjectByName('objectScene');
   }
 
-  updateCubicsArray(clockwise) {
+  arrangeCubicsMatrixByPosition(clockwise) {
     const dir = this.rotatingAxesChar === 'y' ? !clockwise : clockwise;
-    this.printNames(this.rotatingLayer);
-    const newMatrix = Cube.createRotatedMatrix(
-      this.rotatingLayer,
-      // this.clockwise,
-      dir,
-    );
+    const newMatrix = Cube.createRotatedMatrix(this.rotatingLayer, dir);
+    Cube.roundCubicsPositionOnMatrix(newMatrix); // copy 전에 선행되어야함
+    const copyIntoCubic = this.copyFrom(this.rotatingAxesChar, newMatrix);
+    newMatrix.forEach((row, i) => row.forEach((col, j) => copyIntoCubic(i, j)));
+  }
 
-    this.printNames(newMatrix);
-
-    // change
-    for (let i = 0; i < CUBIC_PER_ROW; i++) {
-      for (let j = 0; j < CUBIC_PER_ROW; j++) {
-        this.rotatingLayer[i][j] = newMatrix[i][j]; // NOTE:  이 줄이 하는일ㄹ이 뭐지??
-        this.rotatingLayer[i][j].position.round();
-      }
-    }
-
-    // 원본 큐빅 배치 바꾸기
-    // z축을 회전한 경우, 새 매트릭스이기때문에 위치를 적용해줘야 함
-
+  copyFrom(char, newMatrix) {
     const cubic = this.selectedMesh.parent;
-    if (this.rotatingAxesChar === 'x') {
-      // rotatingCubics 는 selectedMesh.position['x'] +1 을 골랐음
-      for (let i = 0; i < CUBIC_PER_ROW; i++) {
-        for (let j = 0; j < CUBIC_PER_ROW; j++) {
-          // this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
-          this.cubics[cubic.position.x + 1][i][j] = newMatrix[i][j];
-        }
-      }
-    } else if (this.rotatingAxesChar === 'y') {
-      // rotatingCubics 는 selectedMesh.position['y'] +1 을 골랐음
-      for (let i = 0; i < CUBIC_PER_ROW; i++) {
-        for (let j = 0; j < CUBIC_PER_ROW; j++) {
-          // this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
-          this.cubics[i][cubic.position.y + 1][j] = newMatrix[i][j];
-        }
-      }
-    } else if (this.rotatingAxesChar === 'z') {
-      // rotatingCubics 는 selectedMesh.position['z'] +1 을 골랐음
-      for (let i = 0; i < CUBIC_PER_ROW; i++) {
-        for (let j = 0; j < CUBIC_PER_ROW; j++) {
-          // this.cubics[i][j][cubic.position.z + 1] = newMatrix[i][j];
-          this.cubics[i][j][cubic.position.z + 1] = newMatrix[i][j];
-        }
-      }
-    }
-
-    this.printPositions();
+    const pos = cubic.position[char] + 1;
+    return (i, j) => {
+      if (char === 'x') this.cubics[pos][i][j] = newMatrix[i][j];
+      if (char === 'y') this.cubics[i][pos][j] = newMatrix[i][j];
+      if (char === 'z') this.cubics[i][j][pos] = newMatrix[i][j];
+    };
   }
 
   // 3x3 매트릭스 90도 회전
   static createRotatedMatrix(arr, clockwise) {
     const ret = Array.from(Array(3), () => new Array(3));
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
+    for (let i = 0; i < CUBIC_PER_ROW; i++) {
+      for (let j = 0; j < CUBIC_PER_ROW; j++) {
         if (clockwise) {
-          ret[i][3 - j - 1] = arr[j][i];
+          ret[i][CUBIC_PER_ROW - j - 1] = arr[j][i];
         } else {
-          ret[i][j] = arr[j][3 - i - 1];
+          ret[i][j] = arr[j][CUBIC_PER_ROW - i - 1];
         }
       }
     }
@@ -510,8 +467,33 @@ export default class Cube {
     return ret;
   }
 
+  static roundCubicsPositionOnMatrix(matrix) {
+    matrix.forEach(row => row.forEach(col => col.position.round()));
+  }
+
   setLastCubeQuaternion(quaternion) {
     this.lastCubeQuaternion.copy(quaternion);
+  }
+
+  resetAll() {
+    this.removeObjectScene();
+    this.clearVariables();
+  }
+
+  removeObjectScene() {
+    const scene = this.core.parent;
+    const objectScene = scene.getObjectByName('objectScene');
+
+    objectScene.clear();
+    scene.remove(objectScene);
+  }
+
+  clearVariables() {
+    this.rotatingAxesChar = '';
+    this.rotatingAxes = null;
+    this.selectedMesh = null;
+    this.needCubicsUpdate = false;
+    this.rotatingLayer = [[]];
   }
 
   printPositions(matrix) {
