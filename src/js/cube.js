@@ -223,7 +223,7 @@ export default class Cube {
       delta[this.mouseDirection] *= WEIGHT;
       delta.normalize();
       if (!this.selectedMesh) {
-        this.rotateCore(start, delta, value);
+        this.rotateCore(start, delta);
       } else if (this.rotatingAxesChar) {
         this.rotateCubicsByScene(delta, value + VELOCITY);
       }
@@ -244,17 +244,11 @@ export default class Cube {
     return Cube.calculateMouseDirection(delta);
   }
 
-  rotateCore(start, delta, value) {
+  rotateCore(start, delta) {
     if (this.clickedBehindCube(start)) {
       Cube.inverseVector(delta, 'x');
     }
-    const axis = this.mouseDirection === 'x' ? 'y' : start.x > 0 ? 'z' : 'x';
-    const base = Cube.calculateMajorAxis(delta, this.mouseDelta);
-    const temp = new THREE.Quaternion();
-    temp.setFromAxisAngle(base(axis), value);
-    this.core.setRotationFromQuaternion(
-      temp.multiply(this.lastCubeQuaternion).normalize(),
-    );
+    this.updateCoreQuaternion(start, delta);
   }
 
   clickedBehindCube(start) {
@@ -263,6 +257,17 @@ export default class Cube {
 
   static inverseVector(delta, axis) {
     delta[axis] = -delta[axis];
+  }
+
+  updateCoreQuaternion(start, delta) {
+    const value = Math.abs(this.mouseDelta[this.mouseDirection]);
+    const axis = this.mouseDirection === 'x' ? 'y' : start.x > 0 ? 'z' : 'x';
+    const base = Cube.calculateMajorAxis(delta, this.mouseDelta);
+    const temp = new THREE.Quaternion();
+    temp.setFromAxisAngle(base(axis), value);
+    this.core.setRotationFromQuaternion(
+      temp.multiply(this.lastCubeQuaternion).normalize(),
+    );
   }
 
   rotateCubicsByScene(delta, value) {
