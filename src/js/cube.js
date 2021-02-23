@@ -311,7 +311,8 @@ export default class Cube {
   }
 
   slerp(clickStart, clickEnd, object = this.core) {
-    const userDirection = this.getUserDirection(clickStart, clickEnd); // world 기준 방향 리턴
+    // const userDirection = this.getUserDirection(clickStart, clickEnd); // world 기준 방향 리턴
+    const userDirection = this.getUserDirection(clickStart); // world 기준 방향 리턴
     const destination = Cube.getCloserDirection(
       object,
       this.lastCubeQuaternion,
@@ -376,14 +377,8 @@ export default class Cube {
     this.tweenObject(object, destination, clockwise);
   }
 
-  getUserDirection(clickStart, clickEnd) {
-    const units = [
-      new THREE.Vector3(0, 1, 0),
-      new THREE.Vector3(0, 0, 1),
-      new THREE.Vector3(1, 0, 0),
-      new THREE.Vector3(0, 1, 0),
-    ];
-
+  getUserDirection(clickStart) {
+    const units = ['y', 'z', 'x', 'y'].map(char => Cube.charToVector(char));
     const [other, k] = this.mouseDirection === 'x' ? ['y', 1] : ['x', 3];
     const [from, to] = clickStart[other] > 0 ? [k, 2] : [3 - k, 1]; // 유닛벡터 선택
     const direction = new THREE.Quaternion().setFromUnitVectors(
@@ -391,8 +386,7 @@ export default class Cube {
       units[to],
     );
 
-    const invert =
-      clickStart[this.mouseDirection] < clickEnd[this.mouseDirection];
+    const invert = Math.sign(this.mouseDelta[this.mouseDirection]) < 0;
     if (invert) direction.invert();
     this.clockwise = invert;
 
