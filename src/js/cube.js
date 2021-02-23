@@ -215,7 +215,9 @@ export default class Cube {
   }
 
   rotateBody(start, current) {
-    this.mouseDelta.set(start.x - current.x, start.y - current.y);
+    // TODO:
+    // this.mouseDelta.set(start.x - current.x, start.y - current.y); /* 원래값 */
+    this.mouseDelta.set(current.x - start.x, current.y - start.y);
     // 마우스를 후에 다른 방향으로 움직이더라도, 처음 움직였던 방향으로만 움직이기 위해 mouseDirection이 필요함
     if (this.mouseDirection || this.updateMouseDirection(this.mouseDelta)) {
       const delta = this.mouseDelta.clone();
@@ -255,6 +257,7 @@ export default class Cube {
     temp.setFromAxisAngle(base(axis), value);
     this.core.setRotationFromQuaternion(
       temp.multiply(this.lastCubeQuaternion).normalize(),
+      // temp.premultiply(this.lastCubeQuaternion).normalize(),
     );
   }
 
@@ -299,8 +302,8 @@ export default class Cube {
   }
 
   static calculateMajorAxis(delta, local) {
-    const majorX = new THREE.Vector3(delta.y, -delta.x, 0);
-    const majorZ = new THREE.Vector3(0, -delta.x, -delta.y);
+    const majorX = new THREE.Vector3(-delta.y, delta.x, 0);
+    const majorZ = new THREE.Vector3(0, delta.x, delta.y);
 
     return rotatingAxis => {
       if (rotatingAxis === 'x') return majorX;
@@ -311,7 +314,6 @@ export default class Cube {
   }
 
   slerp(clickStart, clickEnd, object = this.core) {
-    // const userDirection = this.getUserDirection(clickStart, clickEnd); // world 기준 방향 리턴
     const userDirection = this.getUserDirection(clickStart); // world 기준 방향 리턴
     const destination = Cube.getCloserDirection(
       object,
@@ -319,12 +321,8 @@ export default class Cube {
       userDirection,
     );
 
-    //FIXME: clockwise 구하는거 다시
-    const clockwise = this.clockwise;
-
     this.needCubicsUpdate = !destination.equals(this.lastCubeQuaternion);
-
-    this.tweenObject(object, destination, clockwise);
+    this.tweenObject(object, destination, this.clockwise);
   }
 
   // TODO:얘를 slerp로 바꿔버리자
@@ -333,28 +331,15 @@ export default class Cube {
     const localVector = this.rotatingAxes;
     const worldVector = this.core.localToWorld(localVector.clone()).round();
     const v = Cube.vectorToChar(worldVector);
-
-    // 가로회전축, 세로회전축
-    const vertical = new THREE.Vector3(0, -delta.x, -delta.y);
-    const horizontal = new THREE.Vector3(delta.y, -delta.x, 0);
-
-    const vector = {
-      x: () => horizontal,
-      y: local => (local.y === 1 ? vertical : horizontal),
-      z: () => vertical,
-    };
-
+    const base = Cube.calculateMajorAxis(delta, localVector);
     const origin = new THREE.Vector3().copy(this.selectedWorldNormal).round();
     const userDirection = new THREE.Vector3()
       .copy(this.selectedWorldNormal)
-      .applyAxisAngle(vector[v](localVector), Math.PI / 2)
+      .applyAxisAngle(base(v), Math.PI / 2)
       .round();
     const cur = new THREE.Vector3()
       .copy(this.selectedWorldNormal)
-      .applyAxisAngle(
-        vector[v](localVector),
-        Math.abs(delta[this.mouseDirection]) + 0.1,
-      );
+      .applyAxisAngle(base(v), Math.abs(delta[this.mouseDirection]) + 0.1);
 
     const func = (cur, origin, userDir) => {
       return cur.angleTo(origin) < cur.angleTo(userDir) ? origin : userDir;
@@ -369,7 +354,7 @@ export default class Cube {
 
     destination.multiply(this.lastCubeQuaternion).normalize();
 
-    let clockwise = vector[v](localVector)[v] < 0;
+    let clockwise = base(v)[v] < 0;
     if (localVector.x + localVector.y + localVector.z < 0)
       clockwise = !clockwise;
 
@@ -378,17 +363,16 @@ export default class Cube {
   }
 
   getUserDirection(clickStart) {
-    const units = ['y', 'z', 'x', 'y'].map(char => Cube.charToVector(char));
-    const [other, k] = this.mouseDirection === 'x' ? ['y', 1] : ['x', 3];
-    const [from, to] = clickStart[other] > 0 ? [k, 2] : [3 - k, 1]; // 유닛벡터 선택
+    const units = ['z', 'y', 'x'].map(char => Cube.charToVector(char));
+    const [other, k] = this.mouseDirection === 'x' ? ['y', 2] : ['x', 1];
+    const [from, to] = clickStart[other] > 0 ? [2, 2 - k] : [0, k];
+    const reverse = this.mouseDelta[this.mouseDirection] * clickStart[other];
     const direction = new THREE.Quaternion().setFromUnitVectors(
       units[from],
       units[to],
     );
-
-    const invert = Math.sign(this.mouseDelta[this.mouseDirection]) < 0;
-    if (invert) direction.invert();
-    this.clockwise = invert;
+    if (this.mouseDelta[this.mouseDirection] < 0) direction.invert();
+    this.clockwise = this.mouseDirection === 'x' ? reverse > 0 : reverse < 0;
 
     return direction;
   }
