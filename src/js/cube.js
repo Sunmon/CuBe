@@ -214,16 +214,13 @@ export default class Cube {
 
   rotateBody(start, current) {
     this.mouseDelta.set(current.x - start.x, current.y - start.y);
-    // 마우스를 후에 다른 방향으로 움직이더라도, 처음 움직였던 방향으로만 움직이기 위해 mouseDirection이 필요함
+    // 처음 움직였던 방향으로만 움직이기 위해 mouseDirection이 필요함
     if (this.mouseDirection || this.updateMouseDirection(this.mouseDelta)) {
-      const delta = this.mouseDelta.clone();
-      const value = Math.abs(delta[this.mouseDirection]);
-      delta[this.mouseDirection] *= WEIGHT;
-      delta.normalize();
-      if (!this.selectedMesh) {
+      const delta = this.weightedMouseDelta();
+      if (this.rotatingAxesChar) {
+        this.rotateCubicsByScene(delta);
+      } else if (!this.selectedMesh) {
         this.rotateCore(start, delta);
-      } else if (this.rotatingAxesChar) {
-        this.rotateCubicsByScene(delta, value + VELOCITY);
       }
     }
   }
@@ -238,9 +235,17 @@ export default class Cube {
     return ['x', 'y'].find(val => Math.abs(delta[val]) > THRESHOLD);
   }
 
-  static isDeltaOverThreshold(delta) {
-    return Cube.calculateMouseDirection(delta);
+  weightedMouseDelta() {
+    const delta = this.mouseDelta.clone();
+    delta[this.mouseDirection] *= WEIGHT;
+    delta.normalize();
+
+    return delta;
   }
+
+  // static isDeltaOverThreshold(delta) {
+  //   return Cube.calculateMouseDirection(delta);
+  // }
 
   rotateCore(start, delta) {
     if (this.clickedBehindCube(start)) {
@@ -258,21 +263,22 @@ export default class Cube {
   }
 
   updateCoreQuaternion(start, delta) {
-    const value = Math.abs(this.mouseDelta[this.mouseDirection]);
     const axis = this.mouseDirection === 'x' ? 'y' : start.x > 0 ? 'z' : 'x';
     const base = Cube.calculateMajorAxis(delta, this.mouseDelta);
     const temp = new THREE.Quaternion();
+    const value = Math.abs(this.mouseDelta[this.mouseDirection]);
     temp.setFromAxisAngle(base(axis), value);
     this.core.setRotationFromQuaternion(
       temp.multiply(this.lastCubeQuaternion).normalize(),
     );
   }
 
-  rotateCubicsByScene(delta, value) {
+  rotateCubicsByScene(delta) {
     if (this.clickedCubeUpside()) {
       Cube.swapVectorXY(delta);
     }
     const temp = new THREE.Quaternion();
+    const value = Math.abs(this.mouseDelta[this.mouseDirection]) + VELOCITY;
     temp.setFromAxisAngle(this.calculateBaseVectorOfRotatingAxes(delta), value);
     this.getObjectScene().setRotationFromQuaternion(
       temp.multiply(this.lastCubeQuaternion).normalize(),
