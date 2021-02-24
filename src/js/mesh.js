@@ -9,6 +9,7 @@ import {
   DoubleSide,
   Mesh,
   Line,
+  Object3D,
 } from '../../lib/three.module.js';
 import { CUBIC_SIZE } from '../common/constants.js';
 
@@ -81,5 +82,13 @@ export default class CustomMesh {
     mesh.localToWorld(center);
 
     return center;
+  }
+
+  static createObjectScene(object) {
+    const objectScene = new Object3D();
+    objectScene.applyQuaternion(object.quaternion);
+    objectScene.name = 'objectScene';
+
+    return objectScene;
   }
 }

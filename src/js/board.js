@@ -54,7 +54,7 @@ export default class Board {
 
   handleMouseDown(event) {
     this.initUserGesture(event);
-    this.customScene.addObject(Board.createObjectScene(this.cube.core));
+    this.customScene.addObject(CustomMesh.createObjectScene(this.cube.core));
   }
 
   handleMouseMove(event) {
@@ -78,32 +78,29 @@ export default class Board {
     this.cube.saveCurrentStatus();
   }
 
-  static createObjectScene(object) {
-    const objectScene = new THREE.Object3D();
-    objectScene.applyQuaternion(object.quaternion);
-    objectScene.name = 'objectScene';
-
-    return objectScene;
-  }
-
   followUserGesture(event) {
-    const gesture = (event.touches && event.touches[0]) || event;
-    this.pickHelper.saveCurrentPosition(gesture, this.customRenderer.canvas);
+    this.saveCurrentPosition(event);
     if (!this.pickHelper.motioning) return;
-    if (
-      this.cube.selectedMesh &&
-      isEmpty(this.cube.rotatingLayer) &&
-      this.cube.mouseDirection
-    ) {
-      const cubic = this.cube.selectedMesh.parent;
-      const objectScene = this.customScene.scene.getObjectByName('objectScene');
-      this.cube.rotatingLayer = this.cube.calculateRotatingLayer(cubic);
-      Cube.addCubicsToObjectScene(this.cube.rotatingLayer, objectScene);
-    }
 
+    if (this.firstMove()) {
+      this.cube.initRotatingLayer();
+    }
     this.cube.rotateBody(
       this.pickHelper.pickStartedPosition,
       this.pickHelper.pickPosition,
+    );
+  }
+
+  saveCurrentPosition(event) {
+    const gesture = (event.touches && event.touches[0]) || event;
+    this.pickHelper.saveCurrentPosition(gesture, this.customRenderer.canvas);
+  }
+
+  firstMove() {
+    return (
+      this.cube.selectedMesh &&
+      isEmpty(this.cube.rotatingLayer) &&
+      this.cube.mouseDirection
     );
   }
 

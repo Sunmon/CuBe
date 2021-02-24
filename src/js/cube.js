@@ -136,6 +136,13 @@ export default class Cube {
     }
   }
 
+  initRotatingLayer() {
+    const cubic = this.selectedMesh.parent;
+    const objectScene = this.getObjectScene();
+    this.rotatingLayer = this.calculateRotatingLayer(cubic);
+    Cube.addCubicsToObjectScene(this.rotatingLayer, objectScene);
+  }
+
   calculateRotatingLayer(cubic) {
     this.rotatingAxes = this.calculateLocalRotatingAxes(this.selectedMesh);
     this.rotatingAxesChar = Cube.vectorToChar(this.rotatingAxes);
@@ -242,10 +249,6 @@ export default class Cube {
 
     return delta;
   }
-
-  // static isDeltaOverThreshold(delta) {
-  //   return Cube.calculateMouseDirection(delta);
-  // }
 
   rotateCore(start, delta) {
     if (this.clickedBehindCube(start)) {
