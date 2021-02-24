@@ -1,4 +1,4 @@
-import { init } from './src/js/board.js';
+import Board from './src/js/board.js';
 
 console.log('hello world!');
-init();
+const board = new Board();
