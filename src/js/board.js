@@ -1,149 +1,139 @@
-import { TransformControls } from 'https://unpkg.com/three/examples/jsm/controls/TransformControls.js';
-import * as THREE from '../../lib/three.module.js';
 import * as TWEEN from '../../lib/tween.esm.js';
 import Cube from './cube.js';
 import CustomCamera from './camera.js';
 import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
-import { PickHelper } from './motion.js';
-import { axesHelper, isEmpty } from '../common/common.js';
+import PickHelper from './pickHelper.js';
+import { CANVAS } from '../common/constants.js';
+import Utils from '../common/utils.js';
 
-const customCamera = CustomCamera.init();
-const customRenderer = CustomRenderer.init();
-const customScene = CustomScene.init();
-const cube = Cube.init();
-const pickHelper = PickHelper.init();
+export default class Board {
+  constructor() {
+    this.customCamera = new CustomCamera();
+    this.customRenderer = new CustomRenderer(CANVAS);
+    this.customScene = new CustomScene();
+    this.cube = new Cube();
+    this.pickHelper = new PickHelper(
+      this.customScene.scene,
+      this.customCamera.camera,
+    );
 
-const followUserGesture = function (event) {
-  if (!pickHelper.motioning) return;
-  const gesture = (event.touches && event.touches[0]) || event;
-  pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  if (cube.selectedMesh && isEmpty(cube.rotatingLayer) && cube.mouseDirection) {
-    const cubic = cube.selectedMesh.parent;
-    const objectScene = customScene.getObjectByName('objectScene');
-    cube.rotatingLayer = cube.calculateRotatingLayer(cubic);
-    cube.addCubicsToObjectScene(cube.rotatingLayer, objectScene);
+    this.init();
   }
 
-  cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
-};
+  init() {
+    this.customScene.addObject(this.cube.core);
+    this.initEventListners();
+    this.cube.core.add(Utils.axesHelper(4));
+    this.animate(this.customCamera, this.customRenderer);
+  }
 
-const clearUserGesture = function () {
-  pickHelper.clearPickPosition();
-  cube.resetMouseDirection();
-};
+  initEventListners() {
+    this.initMouseEvents();
+    this.initMobileEvents();
+  }
 
-const initUserGesture = function (event) {
-  event.preventDefault(); // 스크롤 이벤트 방지
+  initMouseEvents() {
+    window.addEventListener('mousedown', e => this.handleMouseDown(e));
+    window.addEventListener('mousemove', e => this.handleMouseMove(e));
+    window.addEventListener('mouseout', e => this.handleMouseUp(e));
+    window.addEventListener('mouseleave', e => this.handleMouseUp(e));
+    window.addEventListener('mouseup', e => this.handleMouseUp(e));
+  }
 
-  pickHelper.setPickPosition(event, customRenderer.getCanvas());
-  cube.selectedMesh = pickHelper.getClosestSticker(
-    customScene,
-    customCamera.getCamera(),
-  )?.object;
-  cube.saveCurrentStatus(cube.core, cube.selectedMesh);
-};
+  initMobileEvents() {
+    window.addEventListener('touchstart', e => this.handleMouseDown(e), {
+      passive: false,
+    });
+    window.addEventListener('touchmove', e => this.handleMouseMove(e));
+    window.addEventListener('touchend', e => this.handleMouseUp(e));
+  }
 
-const alreadyClear = function () {
-  return !pickHelper.motioning;
-};
+  handleMouseDown(event) {
+    this.initUserGesture(event);
+    this.customScene.addObject(CustomMesh.createObjectScene(this.cube.core));
+  }
 
-const rotateToClosest = function () {
-  const clickStart = { ...pickHelper.pickStartedPosition };
-  const clickEnd = { ...pickHelper.pickPosition };
-  if (!cube.selectedMesh) {
-    cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
-  } else {
-    const objectScene = customScene.getObjectByName('objectScene');
-    if (!objectScene) {
-      alert('no object scene');
-      return;
+  handleMouseMove(event) {
+    this.followUserGesture(event);
+  }
+
+  handleMouseUp(event) {
+    if (this.alreadyClear()) return;
+    this.rotateToClosest(event);
+    this.clearUserGesture();
+  }
+
+  initUserGesture(event) {
+    event.preventDefault(); // 스크롤 이벤트 방지
+
+    this.pickHelper.saveCurrentPosition(event, this.customRenderer.canvas);
+    this.cube.selectedMesh = this.pickHelper.calculateClosestSticker(
+      this.customScene.scene,
+      this.customCamera.camera,
+    );
+    this.cube.saveCurrentStatus();
+  }
+
+  followUserGesture(event) {
+    this.saveCurrentPosition(event);
+    if (!this.pickHelper.motioning) return;
+
+    if (this.firstMove()) {
+      this.cube.initRotatingLayer();
     }
-    cube.slerpCubicsByScene(cube.mouseDelta, objectScene); // 특정 층만 회전
+    this.cube.rotateBody(
+      this.pickHelper.pickStartedPosition,
+      this.pickHelper.pickPosition,
+    );
   }
-};
 
-const createObjectScene = function (object) {
-  const objectScene = new THREE.Object3D();
-  objectScene.applyQuaternion(object.quaternion);
-  objectScene.name = 'objectScene';
-
-  return objectScene;
-};
-
-const handleMouseDown = function (event) {
-  initUserGesture(event);
-  customScene.add(createObjectScene(cube.core));
-};
-
-const handleMouseMove = function (event) {
-  followUserGesture(event);
-};
-
-const handleMouseUp = function (event) {
-  if (alreadyClear()) return;
-  rotateToClosest(event);
-  clearUserGesture();
-};
-
-const initMouseEvents = function () {
-  window.addEventListener('mousedown', handleMouseDown);
-  window.addEventListener('mousemove', handleMouseMove);
-  window.addEventListener('mouseout', handleMouseUp);
-  window.addEventListener('mouseleave', handleMouseUp);
-  window.addEventListener('mouseup', handleMouseUp);
-};
-
-const initMobileEvents = function () {
-  window.addEventListener('touchstart', handleMouseDown, { passive: false });
-  window.addEventListener('touchmove', handleMouseMove);
-  window.addEventListener('touchend', handleMouseUp);
-};
-
-const initEventListners = function () {
-  initMouseEvents();
-  initMobileEvents();
-};
-
-const render = function (camera, renderer, time) {
-  time *= 0.005;
-  if (renderer.resizeRenderToDisplaySize()) {
-    camera.updateAspect(renderer.getRendererAspect());
+  saveCurrentPosition(event) {
+    const gesture = (event.touches && event.touches[0]) || event;
+    this.pickHelper.saveCurrentPosition(gesture, this.customRenderer.canvas);
   }
-  pickHelper.pick(
-    pickHelper.pickPosition,
-    customScene,
-    camera.getCamera(),
-    time,
-  );
-  renderer.render(customScene, camera.getCamera());
-};
 
-const animate = function (camera, renderer) {
-  const time = requestAnimationFrame(() => animate(camera, renderer));
-  render(camera, renderer, time);
-  TWEEN.update();
-};
+  firstMove() {
+    return (
+      this.cube.selectedMesh &&
+      Utils.isEmpty(this.cube.rotatingLayer) &&
+      this.cube.mouseDirection
+    );
+  }
 
-const initTransformControls = function () {
-  const control = new TransformControls(
-    customCamera.getCamera(),
-    customRenderer.renderer.domElement,
-  );
-  control.setMode('rotate');
-  control.addEventListener('dragging-changed', function (event) {});
-  control.attach(cube.core);
+  alreadyClear() {
+    return !this.pickHelper.motioning;
+  }
 
-  return control;
-};
+  rotateToClosest() {
+    const clickStart = { ...this.pickHelper.pickStartedPosition };
+    if (!this.cube.selectedMesh) {
+      this.cube.slerp(clickStart); // 큐브 몸통 전체 회전
+    } else {
+      const objectScene = this.customScene.scene.getObjectByName('objectScene');
+      if (!objectScene || !this.cube.rotatingAxesChar) return;
+      this.cube.slerpCubicsByScene(this.cube.mouseDelta, objectScene); // 특정 층만 회전
+    }
+  }
 
-// eslint-disable-next-line import/prefer-default-export
-export function init() {
-  customScene.add(cube.core);
-  initEventListners();
+  clearUserGesture() {
+    this.pickHelper.clearPickPosition();
+    this.cube.resetMouseDirection();
+  }
 
-  cube.core.add(axesHelper(4));
+  animate(camera, renderer) {
+    const time = requestAnimationFrame(() => this.animate(camera, renderer));
+    this.render(camera, renderer, time);
+    TWEEN.update();
+  }
 
-  animate(customCamera, customRenderer);
+  render(camera, renderer, time) {
+    time *= 0.005;
+    if (renderer.resizeRenderToDisplaySize()) {
+      camera.updateAspect(renderer.rendererAspect);
+    }
+    this.pickHelper.pick(this.customScene.scene, camera.camera, time);
+    renderer.render(this.customScene.scene, camera.camera);
+  }
 }

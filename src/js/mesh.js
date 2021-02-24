@@ -2,70 +2,121 @@ import {
   BoxGeometry,
   MeshPhongMaterial,
   LineBasicMaterial,
-  LineDashedMaterial,
   PlaneBufferGeometry,
   BufferGeometry,
   Vector3,
-  DoubleSide,
   Mesh,
   Line,
+  Object3D,
 } from '../../lib/three.module.js';
+import { CUBIC_PER_ROW, CUBIC_SIZE, WHITE } from '../common/constants.js';
 
-const createBoxGeometry = function (width, height, depth) {
-  return new BoxGeometry(width, height, depth);
-};
+export default class CustomMesh {
+  static createCore() {
+    const core = new Object3D();
+    core.name = 'core';
 
-const createMaterial = function (color) {
-  // TODO: 다른 면들까지 추가하고나면, DoubleSide 삭제하기
-  return new MeshPhongMaterial({
-    color,
-    // side: DoubleSide,
-    opacity: 0.5,
-    transparent: true,
-  });
-};
+    return core;
+  }
 
-const createPlaneGeometry = function (width, height) {
-  return new PlaneBufferGeometry(width, height);
-};
+  static createCubics() {
+    return [...Array(CUBIC_PER_ROW)].map(() =>
+      [...Array(CUBIC_PER_ROW)].map(() =>
+        [...Array(CUBIC_PER_ROW)].map(() => CustomMesh.createCubic(WHITE)),
+      ),
+    );
+  }
 
-// namespace - 메쉬 관련된 함수 모음
-const CustomMesh = {};
+  static createCubic(color) {
+    const cubic = CustomMesh.createBox(
+      CUBIC_SIZE,
+      CUBIC_SIZE,
+      CUBIC_SIZE,
+      color,
+    );
+    cubic.name = 'cubic';
 
-// TODO: 넓은 3x3짜리 plane은 Object3D 씬그래프로 변경할 것
-// 일단 보기 좋게 3x3짜리도 Plane으로 놔둠
-CustomMesh.createPlane = function (width, height, color) {
-  const geometry = createPlaneGeometry(width, height);
-  const material = createMaterial(color);
+    return cubic;
+  }
 
-  return new Mesh(geometry, material);
-};
+  static createSticker(color) {
+    const sticker = CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
+    sticker.name = 'sticker';
 
-CustomMesh.createBox = function (width, height, depth, color) {
-  const geometry = createBoxGeometry(width, height, depth);
-  const material = createMaterial(color);
+    return sticker;
+  }
 
-  return new Mesh(geometry, material);
-};
+  static addStickerToCubic(cubic, sticker, direction) {
+    const face = direction.clone().setLength(CUBIC_SIZE * 2);
+    sticker.translateOnAxis(direction, CUBIC_SIZE / 2);
+    sticker.lookAt(face);
+    cubic.add(sticker);
+  }
 
-CustomMesh.getCenterPoint = function (mesh) {
-  const { geometry } = mesh;
-  const center = new Vector3();
+  static createPlane(width, height, color) {
+    const geometry = CustomMesh.createPlaneGeometry(width, height);
+    const material = CustomMesh.createMaterial(color);
 
-  geometry.computeBoundingBox();
-  geometry.boundingBox.getCenter(center);
-  mesh.localToWorld(center);
+    return new Mesh(geometry, material);
+  }
 
-  return center;
-};
+  static createBox(width, height, depth, color) {
+    const geometry = CustomMesh.createBoxGeometry(width, height, depth);
+    const material = CustomMesh.createMaterial(color);
 
-CustomMesh.createLine = function (from, to) {
-  const material = new LineBasicMaterial({ color: 0xffaa00 });
-  const points = [new Vector3(...from), new Vector3(...to)];
-  const geometry = new BufferGeometry().setFromPoints(points);
-  const line = new Line(geometry, material);
+    return new Mesh(geometry, material);
+  }
 
-  return line;
-};
+  static createPlaneGeometry(width, height) {
+    return new PlaneBufferGeometry(width, height);
+  }
 
-export default CustomMesh;
+  static createBoxGeometry(width, height, depth) {
+    return new BoxGeometry(width, height, depth);
+  }
+
+  static createLine(from, to) {
+    const material = new LineBasicMaterial({ color: 0xffaa00 });
+    const points = [new Vector3(...from), new Vector3(...to)];
+    const geometry = new BufferGeometry().setFromPoints(points);
+    const line = new Line(geometry, material);
+
+    return line;
+  }
+
+  static createMaterial(color) {
+    return new MeshPhongMaterial({
+      color,
+      opacity: 0.5,
+      transparent: true,
+    });
+  }
+
+  static getCenterPoint(mesh) {
+    const { geometry } = mesh;
+    const center = new Vector3();
+    geometry.computeBoundingBox();
+    geometry.boundingBox.getCenter(center);
+    mesh.localToWorld(center);
+
+    return center;
+  }
+
+  static createObjectScene(object) {
+    const objectScene = new Object3D();
+    objectScene.applyQuaternion(object.quaternion);
+    objectScene.name = 'objectScene';
+
+    return objectScene;
+  }
+
+  static addCubicsToObjectScene(rotatingLayer, scene) {
+    rotatingLayer.forEach(row => {
+      row.forEach(col => {
+        scene.add(col);
+      });
+    });
+
+    return scene;
+  }
+}
