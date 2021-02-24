@@ -2,19 +2,31 @@ import {
   BoxGeometry,
   MeshPhongMaterial,
   LineBasicMaterial,
-  LineDashedMaterial,
   PlaneBufferGeometry,
   BufferGeometry,
   Vector3,
-  DoubleSide,
   Mesh,
   Line,
   Object3D,
 } from '../../lib/three.module.js';
-import { CUBIC_SIZE } from '../common/constants.js';
+import { CUBIC_PER_ROW, CUBIC_SIZE, WHITE } from '../common/constants.js';
 
 export default class CustomMesh {
-  // FIXME: mesh 로 뺄까?
+  static createCore() {
+    const core = new Object3D();
+    core.name = 'core';
+
+    return core;
+  }
+
+  static createCubics() {
+    return [...Array(CUBIC_PER_ROW)].map(() =>
+      [...Array(CUBIC_PER_ROW)].map(() =>
+        [...Array(CUBIC_PER_ROW)].map(() => CustomMesh.createCubic(WHITE)),
+      ),
+    );
+  }
+
   static createCubic(color) {
     const cubic = CustomMesh.createBox(
       CUBIC_SIZE,
@@ -32,6 +44,13 @@ export default class CustomMesh {
     sticker.name = 'sticker';
 
     return sticker;
+  }
+
+  static addStickerToCubic(cubic, sticker, direction) {
+    const face = direction.clone().setLength(CUBIC_SIZE * 2);
+    sticker.translateOnAxis(direction, CUBIC_SIZE / 2);
+    sticker.lookAt(face);
+    cubic.add(sticker);
   }
 
   static createPlane(width, height, color) {
@@ -68,7 +87,6 @@ export default class CustomMesh {
   static createMaterial(color) {
     return new MeshPhongMaterial({
       color,
-      // side: DoubleSide,
       opacity: 0.5,
       transparent: true,
     });
@@ -90,5 +108,15 @@ export default class CustomMesh {
     objectScene.name = 'objectScene';
 
     return objectScene;
+  }
+
+  static addCubicsToObjectScene(rotatingLayer, scene) {
+    rotatingLayer.forEach(row => {
+      row.forEach(col => {
+        scene.add(col);
+      });
+    });
+
+    return scene;
   }
 }

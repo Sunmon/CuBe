@@ -1,10 +1,10 @@
 import { Scene, DirectionalLight } from '../../lib/three.module.js';
-import { axesHelper } from '../common/common.js';
+import Utils from '../common/utils.js';
 
 export default class CustomScene {
   constructor() {
     const light = CustomScene.createLight(0xffffff, 1);
-    this.scene = CustomScene.createScene(light, axesHelper(3));
+    this.scene = CustomScene.createScene(light, Utils.axesHelper(3));
   }
 
   static createLight(color, intensity) {

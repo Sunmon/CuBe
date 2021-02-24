@@ -3,7 +3,6 @@
  */
 import { Raycaster } from '../../lib/three.module.js';
 
-// TODO: get set 메소드 이용하기
 export default class PickHelper {
   constructor(scene, camera) {
     this.scene = scene;

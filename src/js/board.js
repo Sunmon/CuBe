@@ -5,8 +5,8 @@ import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
 import PickHelper from './pickHelper.js';
-import { axesHelper, isEmpty } from '../common/common.js';
 import { CANVAS } from '../common/constants.js';
+import Utils from '../common/utils.js';
 
 export default class Board {
   constructor() {
@@ -25,7 +25,7 @@ export default class Board {
   init() {
     this.customScene.addObject(this.cube.core);
     this.initEventListners();
-    this.cube.core.add(axesHelper(4));
+    this.cube.core.add(Utils.axesHelper(4));
     this.animate(this.customCamera, this.customRenderer);
   }
 
@@ -97,7 +97,7 @@ export default class Board {
   firstMove() {
     return (
       this.cube.selectedMesh &&
-      isEmpty(this.cube.rotatingLayer) &&
+      Utils.isEmpty(this.cube.rotatingLayer) &&
       this.cube.mouseDirection
     );
   }
@@ -108,9 +108,8 @@ export default class Board {
 
   rotateToClosest() {
     const clickStart = { ...this.pickHelper.pickStartedPosition };
-    const clickEnd = { ...this.pickHelper.pickPosition };
     if (!this.cube.selectedMesh) {
-      this.cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
+      this.cube.slerp(clickStart); // 큐브 몸통 전체 회전
     } else {
       const objectScene = this.customScene.scene.getObjectByName('objectScene');
       if (!objectScene || !this.cube.rotatingAxesChar) return;
