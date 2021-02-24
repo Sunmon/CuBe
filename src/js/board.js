@@ -1,5 +1,3 @@
-import { TransformControls } from 'https://unpkg.com/three/examples/jsm/controls/TransformControls.js';
-import * as THREE from '../../lib/three.module.js';
 import * as TWEEN from '../../lib/tween.esm.js';
 import Cube from './cube.js';
 import CustomCamera from './camera.js';
@@ -115,11 +113,7 @@ export default class Board {
       this.cube.slerp(clickStart, clickEnd); // 큐브 몸통 전체 회전
     } else {
       const objectScene = this.customScene.scene.getObjectByName('objectScene');
-      if (!objectScene) {
-        alert('no object scene');
-        return;
-      }
-      if (!this.cube.rotatingAxesChar) return;
+      if (!objectScene || !this.cube.rotatingAxesChar) return;
       this.cube.slerpCubicsByScene(this.cube.mouseDelta, objectScene); // 특정 층만 회전
     }
   }
