@@ -18,7 +18,6 @@ export default class CustomScene {
       mainLight,
       mainLight.target,
       subLight,
-      Utils.axesHelper(3),
       floor,
     );
   }

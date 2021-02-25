@@ -25,7 +25,6 @@ export default class Board {
   init() {
     this.customScene.addObject(this.cube.core);
     this.initEventListners();
-    this.cube.core.add(Utils.axesHelper(4));
     this.animate(this.customCamera, this.customRenderer);
   }
 
