@@ -8,9 +8,20 @@ import {
   Mesh,
   Line,
   Object3D,
+  MeshToonMaterial,
+  WireframeGeometry,
+  LineSegments,
+  EdgesGeometry,
+  Loader,
+  RepeatWrapping,
+  NearestFilter,
+  PlaneGeometry,
+  TextureLoader,
 } from '../../lib/three.module.js';
 import { CUBIC_PER_ROW, CUBIC_SIZE, WHITE } from '../common/constants.js';
 
+// 카툰렌더링
+// https://threejs.org/examples/#webgl_materials_variations_toon
 export default class CustomMesh {
   static createCore() {
     const core = new Object3D();
@@ -90,6 +101,16 @@ export default class CustomMesh {
       opacity: 0.5,
       transparent: true,
     });
+  }
+
+  static createTexture(src) {
+    const loader = new TextureLoader();
+    const texture = loader.load(src);
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.magFilter = NearestFilter;
+
+    return texture;
   }
 
   static getCenterPoint(mesh) {
