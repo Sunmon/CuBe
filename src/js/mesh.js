@@ -1,6 +1,5 @@
 import {
   BoxGeometry,
-  MeshPhongMaterial,
   LineBasicMaterial,
   PlaneBufferGeometry,
   BufferGeometry,
@@ -8,9 +7,15 @@ import {
   Mesh,
   Line,
   Object3D,
+  MeshToonMaterial,
+  TextureLoader,
+  LinearFilter,
+  LinearMipmapLinearFilter,
 } from '../../lib/three.module.js';
-import { CUBIC_PER_ROW, CUBIC_SIZE, WHITE } from '../common/constants.js';
+import { CUBIC_PER_ROW, CUBIC_SIZE, BLACK } from '../common/constants.js';
 
+// 카툰렌더링
+// https://threejs.org/examples/#webgl_materials_variations_toon
 export default class CustomMesh {
   static createCore() {
     const core = new Object3D();
@@ -22,7 +27,7 @@ export default class CustomMesh {
   static createCubics() {
     return [...Array(CUBIC_PER_ROW)].map(() =>
       [...Array(CUBIC_PER_ROW)].map(() =>
-        [...Array(CUBIC_PER_ROW)].map(() => CustomMesh.createCubic(WHITE)),
+        [...Array(CUBIC_PER_ROW)].map(() => CustomMesh.createCubic(BLACK)),
       ),
     );
   }
@@ -41,6 +46,9 @@ export default class CustomMesh {
 
   static createSticker(color) {
     const sticker = CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
+    const texture = CustomMesh.createTexture('assets/128_2px.png');
+    sticker.material.map = texture;
+    sticker.material.transparent = true;
     sticker.name = 'sticker';
 
     return sticker;
@@ -48,7 +56,7 @@ export default class CustomMesh {
 
   static addStickerToCubic(cubic, sticker, direction) {
     const face = direction.clone().setLength(CUBIC_SIZE * 2);
-    sticker.translateOnAxis(direction, CUBIC_SIZE / 2);
+    sticker.translateOnAxis(direction, CUBIC_SIZE / 2 + 0.01);
     sticker.lookAt(face);
     cubic.add(sticker);
   }
@@ -85,11 +93,18 @@ export default class CustomMesh {
   }
 
   static createMaterial(color) {
-    return new MeshPhongMaterial({
+    return new MeshToonMaterial({
       color,
-      opacity: 0.5,
-      transparent: true,
     });
+  }
+
+  static createTexture(src) {
+    const loader = new TextureLoader();
+    const texture = loader.load(src);
+    texture.magFilter = LinearFilter;
+    texture.minFilter = LinearMipmapLinearFilter;
+
+    return texture;
   }
 
   static getCenterPoint(mesh) {
