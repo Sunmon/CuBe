@@ -1,104 +1,138 @@
-import { TransformControls } from 'https://unpkg.com/three/examples/jsm/controls/TransformControls.js';
-import * as THREE from '../../lib/three.module.js';
 import * as TWEEN from '../../lib/tween.esm.js';
 import Cube from './cube.js';
 import CustomCamera from './camera.js';
 import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
-import { PickHelper } from './motion.js';
-import { axesHelper } from '../common/common.js';
+import PickHelper from './pickHelper.js';
+import { CANVAS } from '../common/constants.js';
+import Utils from '../common/utils.js';
 
-const customCamera = CustomCamera.init();
-const customRenderer = CustomRenderer.init();
-const customScene = CustomScene.init();
-const cube = Cube.init();
-const pickHelper = PickHelper.init();
+export default class Board {
+  constructor() {
+    this.customCamera = new CustomCamera();
+    this.customRenderer = new CustomRenderer(CANVAS);
+    this.customScene = new CustomScene();
+    this.cube = new Cube();
+    this.pickHelper = new PickHelper(
+      this.customScene.scene,
+      this.customCamera.camera,
+    );
 
-const followUserGesture = function (event) {
-  const gesture = (event.touches && event.touches[0]) || event;
-  pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  if (pickHelper.motioning) {
-    cube.rotateBody(pickHelper.pickStartedPosition, pickHelper.pickPosition);
+    this.init();
   }
-};
 
-const clearUserGesture = function () {
-  pickHelper.clearPickPosition();
-};
-
-const initUserGesture = function (event) {
-  event.preventDefault(); // 스크롤 이벤트 방지
-  const gesture = (event.touches && event.touches[0]) || event;
-  pickHelper.setPickPosition(gesture, customRenderer.getCanvas());
-  cube.core.center.quaternion.copy(cube.lastCubeQuaternion);
-};
-
-const rotateToClosest = function () {
-  const clickStart = { ...pickHelper.pickStartedPosition };
-  const clickEnd = { ...pickHelper.pickPosition };
-  cube.slerp(clickStart, clickEnd);
-  pickHelper.clearPickPosition();
-  cube.resetMouseDirection();
-};
-
-const initMouseEvents = function () {
-  window.addEventListener('mousemove', followUserGesture);
-  window.addEventListener('mouseout', clearUserGesture);
-  window.addEventListener('mouseleave', clearUserGesture);
-  window.addEventListener('mousedown', initUserGesture);
-  window.addEventListener('mouseup', rotateToClosest);
-};
-
-const initMobileEvents = function () {
-  window.addEventListener('touchstart', initUserGesture, { passive: false });
-  window.addEventListener('touchmove', followUserGesture);
-  window.addEventListener('touchend', rotateToClosest);
-};
-
-const initEventListners = function () {
-  initMouseEvents();
-  initMobileEvents();
-};
-
-const render = function (camera, renderer, time) {
-  time *= 0.005;
-  if (renderer.resizeRenderToDisplaySize()) {
-    camera.updateAspect(renderer.getRendererAspect());
+  init() {
+    this.customScene.addObject(this.cube.core);
+    this.initEventListners();
+    this.animate(this.customCamera, this.customRenderer);
   }
-  pickHelper.pick(
-    pickHelper.pickPosition,
-    customScene,
-    camera.getCamera(),
-    time,
-  );
-  renderer.render(customScene, camera.getCamera());
-};
 
-const animate = function (camera, renderer) {
-  const time = requestAnimationFrame(() => animate(camera, renderer));
-  render(camera, renderer, time);
-  TWEEN.update();
-};
+  initEventListners() {
+    this.initMouseEvents();
+    this.initMobileEvents();
+  }
 
-const initTransformControls = function () {
-  const control = new TransformControls(
-    customCamera.getCamera(),
-    customRenderer.renderer.domElement,
-  );
-  control.setMode('rotate');
-  control.addEventListener('dragging-changed', function (event) {});
-  control.attach(cube.core.center);
+  initMouseEvents() {
+    window.addEventListener('mousedown', e => this.handleMouseDown(e));
+    window.addEventListener('mousemove', e => this.handleMouseMove(e));
+    window.addEventListener('mouseout', e => this.handleMouseUp(e));
+    window.addEventListener('mouseleave', e => this.handleMouseUp(e));
+    window.addEventListener('mouseup', e => this.handleMouseUp(e));
+  }
 
-  return control;
-};
+  initMobileEvents() {
+    window.addEventListener('touchstart', e => this.handleMouseDown(e), {
+      passive: false,
+    });
+    window.addEventListener('touchmove', e => this.handleMouseMove(e));
+    window.addEventListener('touchend', e => this.handleMouseUp(e));
+  }
 
-// eslint-disable-next-line import/prefer-default-export
-export function init() {
-  customScene.add(cube.core.center);
-  initEventListners();
+  handleMouseDown(event) {
+    this.initUserGesture(event);
+    this.customScene.addObject(CustomMesh.createObjectScene(this.cube.core));
+  }
 
-  cube.core.center.add(axesHelper(1));
+  handleMouseMove(event) {
+    this.followUserGesture(event);
+  }
 
-  animate(customCamera, customRenderer);
+  handleMouseUp(event) {
+    if (this.alreadyClear()) return;
+    this.rotateToClosest(event);
+    this.clearUserGesture();
+  }
+
+  initUserGesture(event) {
+    event.preventDefault(); // 스크롤 이벤트 방지
+
+    this.pickHelper.saveCurrentPosition(event, this.customRenderer.canvas);
+    this.cube.selectedMesh = this.pickHelper.calculateClosestSticker(
+      this.customScene.scene,
+      this.customCamera.camera,
+    );
+    this.cube.saveCurrentStatus();
+  }
+
+  followUserGesture(event) {
+    this.saveCurrentPosition(event);
+    if (!this.pickHelper.motioning) return;
+
+    if (this.firstMove()) {
+      this.cube.initRotatingLayer();
+    }
+    this.cube.rotateBody(
+      this.pickHelper.pickStartedPosition,
+      this.pickHelper.pickPosition,
+    );
+  }
+
+  saveCurrentPosition(event) {
+    const gesture = (event.touches && event.touches[0]) || event;
+    this.pickHelper.saveCurrentPosition(gesture, this.customRenderer.canvas);
+  }
+
+  firstMove() {
+    return (
+      this.cube.selectedMesh &&
+      Utils.isEmpty(this.cube.rotatingLayer) &&
+      this.cube.mouseDirection
+    );
+  }
+
+  alreadyClear() {
+    return !this.pickHelper.motioning;
+  }
+
+  rotateToClosest() {
+    const clickStart = { ...this.pickHelper.pickStartedPosition };
+    if (!this.cube.selectedMesh) {
+      this.cube.slerp(clickStart); // 큐브 몸통 전체 회전
+    } else {
+      const objectScene = this.customScene.scene.getObjectByName('objectScene');
+      if (!objectScene || !this.cube.rotatingAxesChar) return;
+      this.cube.slerpCubicsByScene(objectScene); // 특정 층만 회전
+    }
+  }
+
+  clearUserGesture() {
+    this.pickHelper.clearPickPosition();
+    this.cube.resetMouseDirection();
+  }
+
+  animate(camera, renderer) {
+    const time = requestAnimationFrame(() => this.animate(camera, renderer));
+    this.render(camera, renderer, time);
+    TWEEN.update();
+  }
+
+  render(camera, renderer, time) {
+    time *= 0.005;
+    if (renderer.resizeRenderToDisplaySize()) {
+      camera.updateAspect(renderer.rendererAspect);
+    }
+    this.pickHelper.pick(this.customScene.scene, camera.camera, time);
+    renderer.render(this.customScene.scene, camera.camera);
+  }
 }

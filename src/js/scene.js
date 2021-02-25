@@ -1,38 +1,75 @@
-import { Scene, DirectionalLight } from '../../lib/three.module.js';
-import { axesHelper } from '../common/common.js';
+import {
+  Scene,
+  PointLight,
+  SpotLight,
+  RepeatWrapping,
+  NearestFilter,
+} from '../../lib/three.module.js';
+import { WHITE } from '../common/constants.js';
+import Utils from '../common/utils.js';
+import CustomMesh from './mesh.js';
 
-const createScene = function () {
-  return new Scene();
-};
+export default class CustomScene {
+  constructor() {
+    const mainLight = CustomScene.createSpotLight(WHITE, 0.8);
+    const subLight = CustomScene.createPointLight(WHITE, 0.5);
+    const floor = CustomScene.createFloor();
+    this.scene = CustomScene.createScene(
+      mainLight,
+      mainLight.target,
+      subLight,
+      floor,
+    );
+  }
 
-const createLight = function (color, intensity) {
-  return new DirectionalLight(color, intensity);
-};
+  static createPointLight(color, intensity) {
+    const light = new PointLight(color, intensity);
+    light.position.set(0, 5, 0);
+    light.distance = 12;
 
-const setObjectPosition = function (x, y, z, obj) {
-  obj.position.x = x;
-  obj.position.y = y;
-  obj.position.z = z;
-};
+    return light;
+  }
 
-// namespace
-const CustomScene = {};
+  static createSpotLight(color, intensity) {
+    const light = new SpotLight(color, intensity);
+    light.position.set(5, 10, 5);
+    light.angle = Math.PI / 12;
 
-CustomScene.init = function () {
-  const scene = createScene();
-  const light = createLight(0xffffff, 1);
-  light.position.set(8, 8, 8);
-  light.target.position.set(0, 0, 0);
-  scene.add(light);
-  scene.add(light.target);
-  scene.add(axesHelper(3));
+    return light;
+  }
 
-  return scene;
-};
+  static createScene(...objects) {
+    const scene = new Scene();
+    objects.forEach(obj => scene.add(obj));
 
-CustomScene.addObject = function (x, y, z, obj, scene) {
-  setObjectPosition(x, y, z);
-  scene.add(obj);
-};
+    return scene;
+  }
 
-export default CustomScene;
+  static createFloor() {
+    const planeSize = 20;
+    const repeats = planeSize / 2;
+    const texture = CustomMesh.createTexture('assets/checker.png');
+    const mesh = CustomMesh.createPlane(planeSize, planeSize, WHITE);
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.magFilter = NearestFilter;
+    texture.repeat.set(repeats, repeats);
+    mesh.material.map = texture;
+    mesh.rotation.x = Math.PI * -0.5;
+    mesh.position.y = -2;
+
+    return mesh;
+  }
+
+  set scene(scene) {
+    this._scene = scene;
+  }
+
+  get scene() {
+    return this._scene;
+  }
+
+  addObject(object) {
+    this.scene.add(object);
+  }
+}
