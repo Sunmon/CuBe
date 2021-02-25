@@ -53,7 +53,7 @@ export default class CustomScene {
   static createFloor() {
     const planeSize = 20;
     const repeats = planeSize / 2;
-    const texture = CustomMesh.createTexture('asset/checker.png');
+    const texture = CustomMesh.createTexture('assets/checker.png');
     texture.repeat.set(repeats, repeats);
     const planeGeo = new PlaneGeometry(planeSize, planeSize);
     const planeMat = new MeshToonMaterial({
