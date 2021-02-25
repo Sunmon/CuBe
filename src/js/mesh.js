@@ -51,15 +51,26 @@ export default class CustomMesh {
   }
 
   static createSticker(color) {
-    const sticker = CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
+    const sticker = CustomMesh.createPlane(
+      CUBIC_SIZE - 0.1,
+      CUBIC_SIZE - 0.1,
+      color,
+    );
     sticker.name = 'sticker';
+    const edges = new EdgesGeometry(sticker.geometry);
+    const line = new LineSegments(
+      edges,
+      new LineBasicMaterial({ color: 0x000000, linewidth: 3 }),
+    );
+    sticker.add(line);
 
     return sticker;
   }
 
   static addStickerToCubic(cubic, sticker, direction) {
     const face = direction.clone().setLength(CUBIC_SIZE * 2);
-    sticker.translateOnAxis(direction, CUBIC_SIZE / 2);
+    // sticker.translateOnAxis(direction, CUBIC_SIZE / 2);
+    sticker.translateOnAxis(direction, CUBIC_SIZE / 2 + 0.01);
     sticker.lookAt(face);
     cubic.add(sticker);
   }
@@ -96,10 +107,8 @@ export default class CustomMesh {
   }
 
   static createMaterial(color) {
-    return new MeshPhongMaterial({
+    return new MeshToonMaterial({
       color,
-      opacity: 0.5,
-      transparent: true,
     });
   }
 
