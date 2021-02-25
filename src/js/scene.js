@@ -2,9 +2,8 @@ import {
   Scene,
   PointLight,
   SpotLight,
-  PlaneGeometry,
-  Mesh,
-  MeshToonMaterial,
+  RepeatWrapping,
+  NearestFilter,
 } from '../../lib/three.module.js';
 import { WHITE } from '../common/constants.js';
 import Utils from '../common/utils.js';
@@ -36,9 +35,6 @@ export default class CustomScene {
     const light = new SpotLight(color, intensity);
     light.position.set(5, 10, 5);
     light.angle = Math.PI / 12;
-    // light.distance = 30;
-    // light.penumbra = 0.1;
-    // light.castShadow = true;
 
     return light;
   }
@@ -54,14 +50,14 @@ export default class CustomScene {
     const planeSize = 20;
     const repeats = planeSize / 2;
     const texture = CustomMesh.createTexture('assets/checker.png');
+    const mesh = CustomMesh.createPlane(planeSize, planeSize, WHITE);
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.magFilter = NearestFilter;
     texture.repeat.set(repeats, repeats);
-    const planeGeo = new PlaneGeometry(planeSize, planeSize);
-    const planeMat = new MeshToonMaterial({
-      map: texture,
-    });
-    const mesh = new Mesh(planeGeo, planeMat);
-    mesh.position.y = -2;
+    mesh.material.map = texture;
     mesh.rotation.x = Math.PI * -0.5;
+    mesh.position.y = -2;
 
     return mesh;
   }
