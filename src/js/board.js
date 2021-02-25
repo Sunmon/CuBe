@@ -113,7 +113,7 @@ export default class Board {
     } else {
       const objectScene = this.customScene.scene.getObjectByName('objectScene');
       if (!objectScene || !this.cube.rotatingAxesChar) return;
-      this.cube.slerpCubicsByScene(this.cube.mouseDelta, objectScene); // 특정 층만 회전
+      this.cube.slerpCubicsByScene(objectScene); // 특정 층만 회전
     }
   }
 

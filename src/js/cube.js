@@ -208,7 +208,8 @@ export default class Cube {
     this.tweenObject(object, destination);
   }
 
-  slerpCubicsByScene(delta, object) {
+  slerpCubicsByScene(object) {
+    const delta = this.weightedMouseDelta(this.mouseDelta);
     const base = this.calculateBaseVectorOfRotatingAxes(delta);
     const origin = this.selectedWorldNormal.clone();
     const userDirection = Utils.createRotatedVectorFrom(
@@ -219,7 +220,7 @@ export default class Cube {
     const cur = Utils.createRotatedVectorFrom(
       this.selectedWorldNormal,
       base,
-      Math.abs(delta[this.mouseDirection]) + 0.1,
+      Math.abs(this.mouseDelta[this.mouseDirection]) + 0.1,
     );
     const dest = Utils.getCloserVector(cur, origin, userDirection);
     const destQuaternion = new THREE.Quaternion().setFromUnitVectors(
