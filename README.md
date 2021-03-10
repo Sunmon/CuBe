@@ -1,9 +1,15 @@
 # CuBe
+<p align = "center">
+<img src = 'https://user-images.githubusercontent.com/26290571/109127463-ce4c4400-7791-11eb-9a5c-38f657c8a261.png' width = 50% >
+</p>
 
-<center><img src = 'https://user-images.githubusercontent.com/26290571/109127463-ce4c4400-7791-11eb-9a5c-38f657c8a261.png' width = 50% ></center>
+<p align="center">  
+  큐브를 맞추는 사이트
+  <a href= https://sunmon.github.io/CuBe/> 🎮 플레이 링크 🎮 </a>
+</p>
 
-<center> 큐브를 맞추는 사이트 </center>
-<center>  <a href= https://sunmon.github.io/CuBe/> 🎮 플레이 링크 </a> </center>
+---
+
 
 ## 🎲 주요 기능
 
