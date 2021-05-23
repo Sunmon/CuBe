@@ -10,10 +10,11 @@ import Utils from '../common/utils.js';
 
 export default class Board {
   constructor() {
+    this.enableEvent = { click: true };
     this.customCamera = new CustomCamera();
     this.customRenderer = new CustomRenderer(CANVAS);
     this.customScene = new CustomScene();
-    this.cube = new Cube();
+    this.cube = new Cube(this.enableEvent);
     this.pickHelper = new PickHelper(
       this.customScene.scene,
       this.customCamera.camera,
@@ -50,6 +51,7 @@ export default class Board {
   }
 
   handleMouseDown(event) {
+    if (!this.enableEvent.click) return;
     this.initUserGesture(event);
     this.customScene.addObject(CustomMesh.createObjectScene(this.cube.core));
   }
@@ -119,6 +121,7 @@ export default class Board {
   clearUserGesture() {
     this.pickHelper.clearPickPosition();
     this.cube.resetMouseDirection();
+    this.enableEvent.click = false; // 회전중에 이벤트를 입력받아 회전이 꼬이는것을 방지
   }
 
   animate(camera, renderer) {
