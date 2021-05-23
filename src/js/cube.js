@@ -11,7 +11,7 @@ import {
 import Utils from '../common/utils.js';
 
 export default class Cube {
-  constructor(enableEvent) {
+  constructor(eventManager) {
     this.core = new THREE.Object3D();
     this.cubics = [[[]]]; // cuibcs[x][y][z].position: (x-1, y-1, z-1)로 일정하게 유지
     this.mouseDelta = new THREE.Vector2();
@@ -24,7 +24,7 @@ export default class Cube {
     this.rotatingAxes = new THREE.Vector3();
     this.needCubicsUpdate = false;
     this.lastCubeQuaternion = new THREE.Quaternion();
-    this.enableEvent = enableEvent;
+    this.eventManager = eventManager;
 
     this.createCube();
   }
@@ -275,8 +275,9 @@ export default class Cube {
         }
         this.setLastCubeQuaternion(destination);
         this.resetAll();
-        // FIXME: fix issue https://github.com/Sunmon/CuBe/issues/19
-        this.enableEvent.click = true;
+        this.eventManager.setClickable(
+          true,
+        ); /* 애니메이션이 끝나면 클릭 이벤트 리스너 활성화 */
       });
   }
 
