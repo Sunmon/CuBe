@@ -268,18 +268,15 @@ export default class Cube {
   tweenObject(object, destination) {
     new TWEEN.Tween(object.quaternion)
       .to(destination, 100)
-      .start()
       .onComplete(() => {
         if (!Utils.isEmpty(this.rotatingLayer)) {
           this.settleCubics();
         }
         this.setLastCubeQuaternion(destination);
         this.resetAll();
-        this.eventManager.setEnable(
-          'mousedown',
-          true,
-        ); /* 애니메이션이 끝나면 클릭 이벤트 리스너 활성화 */
-      });
+        this.eventManager.enableClick(true);
+      })
+      .start();
   }
 
   settleCubics() {

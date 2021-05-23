@@ -7,6 +7,9 @@ export default class EventManager {
       mouseup: true,
       mouseleave: true,
       mouseout: true,
+      touchstart: true,
+      touchmove: true,
+      touchend: true,
     };
   }
 
@@ -16,6 +19,11 @@ export default class EventManager {
       if (!this.isEnable(type)) return;
       listener(e);
     });
+  }
+
+  enableClick(flag) {
+    this.setEnable('mousedown', flag);
+    this.setEnable('touchstart', flag);
   }
 
   isEnable(type) {

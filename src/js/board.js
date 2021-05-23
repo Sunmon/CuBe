@@ -51,11 +51,11 @@ export default class Board {
   }
 
   initMobileEvents() {
-    window.addEventListener('touchstart', e => this.handleMouseDown(e), {
+    this.eventManager.addEventListener('touchstart', this.handleMouseDown, {
       passive: false,
     });
-    window.addEventListener('touchmove', e => this.handleMouseMove(e));
-    window.addEventListener('touchend', e => this.handleMouseUp(e));
+    this.eventManager.addEventListener('touchmove', this.handleMouseMove);
+    this.eventManager.addEventListener('touchend', this.handleMouseUp);
   }
 
   handleMouseDown(event) {
@@ -68,7 +68,11 @@ export default class Board {
   }
 
   handleMouseUp(event) {
-    if (this.alreadyClear()) return;
+    this.eventManager.enableClick(false); // 회전중에 이벤트를 입력받아 회전이 꼬이는것을 방지
+    if (this.alreadyClear()) {
+      this.eventManager.enableClick(true);
+      return;
+    }
     this.rotateToClosest(event);
     this.clearUserGesture();
   }
@@ -128,7 +132,6 @@ export default class Board {
   clearUserGesture() {
     this.pickHelper.clearPickPosition();
     this.cube.resetMouseDirection();
-    this.eventManager.setEnable('mousedown', false); // 회전중에 이벤트를 입력받아 회전이 꼬이는것을 방지
   }
 
   animate(camera, renderer) {
