@@ -275,7 +275,8 @@ export default class Cube {
         }
         this.setLastCubeQuaternion(destination);
         this.resetAll();
-        this.eventManager.setClickable(
+        this.eventManager.setEnable(
+          'mousedown',
           true,
         ); /* 애니메이션이 끝나면 클릭 이벤트 리스너 활성화 */
       });

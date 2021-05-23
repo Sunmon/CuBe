@@ -11,7 +11,7 @@ import EventManager from './eventManager.js';
 
 export default class Board {
   constructor() {
-    this.eventManager = new EventManager();
+    this.eventManager = new EventManager(CANVAS);
     this.customCamera = new CustomCamera();
     this.customRenderer = new CustomRenderer(CANVAS);
     this.customScene = new CustomScene();
@@ -31,16 +31,23 @@ export default class Board {
   }
 
   initEventListners() {
+    this.bindEvents();
     this.initMouseEvents();
     this.initMobileEvents();
   }
 
+  bindEvents() {
+    this.handleMouseDown = this.handleMouseDown.bind(this);
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
+  }
+
   initMouseEvents() {
-    window.addEventListener('mousedown', e => this.handleMouseDown(e));
-    window.addEventListener('mousemove', e => this.handleMouseMove(e));
-    window.addEventListener('mouseout', e => this.handleMouseUp(e));
-    window.addEventListener('mouseleave', e => this.handleMouseUp(e));
-    window.addEventListener('mouseup', e => this.handleMouseUp(e));
+    this.eventManager.addEventListener('mousedown', this.handleMouseDown);
+    this.eventManager.addEventListener('mousemove', this.handleMouseMove);
+    this.eventManager.addEventListener('mouseout', this.handleMouseUp);
+    this.eventManager.addEventListener('mouseleave', this.handleMouseUp);
+    this.eventManager.addEventListener('mouseup', this.handleMouseUp);
   }
 
   initMobileEvents() {
@@ -52,7 +59,6 @@ export default class Board {
   }
 
   handleMouseDown(event) {
-    if (!this.eventManager.isClickable()) return;
     this.initUserGesture(event);
     this.customScene.addObject(CustomMesh.createObjectScene(this.cube.core));
   }
@@ -122,7 +128,7 @@ export default class Board {
   clearUserGesture() {
     this.pickHelper.clearPickPosition();
     this.cube.resetMouseDirection();
-    this.eventManager.setClickable(false); // 회전중에 이벤트를 입력받아 회전이 꼬이는것을 방지
+    this.eventManager.setEnable('mousedown', false); // 회전중에 이벤트를 입력받아 회전이 꼬이는것을 방지
   }
 
   animate(camera, renderer) {
