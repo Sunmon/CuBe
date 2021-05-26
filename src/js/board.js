@@ -7,13 +7,15 @@ import CustomMesh from './mesh.js';
 import PickHelper from './pickHelper.js';
 import { CANVAS } from '../common/constants.js';
 import Utils from '../common/utils.js';
+import EventManager from './eventManager.js';
 
 export default class Board {
   constructor() {
+    this.eventManager = new EventManager(CANVAS);
     this.customCamera = new CustomCamera();
     this.customRenderer = new CustomRenderer(CANVAS);
     this.customScene = new CustomScene();
-    this.cube = new Cube();
+    this.cube = new Cube(this.eventManager);
     this.pickHelper = new PickHelper(
       this.customScene.scene,
       this.customCamera.camera,
@@ -29,24 +31,31 @@ export default class Board {
   }
 
   initEventListners() {
+    this.bindEvents();
     this.initMouseEvents();
     this.initMobileEvents();
   }
 
+  bindEvents() {
+    this.handleMouseDown = this.handleMouseDown.bind(this);
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
+  }
+
   initMouseEvents() {
-    window.addEventListener('mousedown', e => this.handleMouseDown(e));
-    window.addEventListener('mousemove', e => this.handleMouseMove(e));
-    window.addEventListener('mouseout', e => this.handleMouseUp(e));
-    window.addEventListener('mouseleave', e => this.handleMouseUp(e));
-    window.addEventListener('mouseup', e => this.handleMouseUp(e));
+    this.eventManager.addEventListener('mousedown', this.handleMouseDown);
+    this.eventManager.addEventListener('mousemove', this.handleMouseMove);
+    this.eventManager.addEventListener('mouseout', this.handleMouseUp);
+    this.eventManager.addEventListener('mouseleave', this.handleMouseUp);
+    this.eventManager.addEventListener('mouseup', this.handleMouseUp);
   }
 
   initMobileEvents() {
-    window.addEventListener('touchstart', e => this.handleMouseDown(e), {
+    this.eventManager.addEventListener('touchstart', this.handleMouseDown, {
       passive: false,
     });
-    window.addEventListener('touchmove', e => this.handleMouseMove(e));
-    window.addEventListener('touchend', e => this.handleMouseUp(e));
+    this.eventManager.addEventListener('touchmove', this.handleMouseMove);
+    this.eventManager.addEventListener('touchend', this.handleMouseUp);
   }
 
   handleMouseDown(event) {
@@ -59,7 +68,11 @@ export default class Board {
   }
 
   handleMouseUp(event) {
-    if (this.alreadyClear()) return;
+    this.eventManager.enableClick(false); // 회전중에 이벤트를 입력받아 회전이 꼬이는것을 방지
+    if (this.alreadyClear()) {
+      this.eventManager.enableClick(true);
+      return;
+    }
     this.rotateToClosest(event);
     this.clearUserGesture();
   }
