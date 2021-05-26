@@ -11,7 +11,7 @@ import {
 import Utils from '../common/utils.js';
 
 export default class Cube {
-  constructor() {
+  constructor(eventManager) {
     this.core = new THREE.Object3D();
     this.cubics = [[[]]]; // cuibcs[x][y][z].position: (x-1, y-1, z-1)로 일정하게 유지
     this.mouseDelta = new THREE.Vector2();
@@ -24,6 +24,7 @@ export default class Cube {
     this.rotatingAxes = new THREE.Vector3();
     this.needCubicsUpdate = false;
     this.lastCubeQuaternion = new THREE.Quaternion();
+    this.eventManager = eventManager;
 
     this.createCube();
   }
@@ -267,14 +268,15 @@ export default class Cube {
   tweenObject(object, destination) {
     new TWEEN.Tween(object.quaternion)
       .to(destination, 100)
-      .start()
       .onComplete(() => {
         if (!Utils.isEmpty(this.rotatingLayer)) {
           this.settleCubics();
         }
         this.setLastCubeQuaternion(destination);
         this.resetAll();
-      });
+        this.eventManager.enableClick(true);
+      })
+      .start();
   }
 
   settleCubics() {
