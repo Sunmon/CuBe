@@ -87,9 +87,20 @@ _버전 2.0.0_
 
 ## 빌드 방법
 
-1. index.html에서 다음 라인 주석처리
-   - <script type="module" src="/index.js"></script>
+1. 다음 라인들을 주석처리한다
+   - index.html : `<script type="module" src="/src/index.js"></script>`
+   - /src/index.js: `import './css/common.css';`
 2. npm run build
 3. /dist/ 폴더 안에 번들링 결과물이 나온다
+4. 주석처리한 것들을 해제한다.
 
-추후 gulp를 이용하여 빌드 과정이 변경될 수 있음
+( 추후 gulp를 이용하여 빌드 과정이 변경될 수 있음 )
+
+## 폴더 구조
+
+- assets: 로고, 텍스쳐 등 저장
+- dist: 번들링 결과물 저장 (gitignore)
+- lib: three.js, tween.js 등 외부 라이브러리
+- public: 서버에서 사용하기 위한 정적 파일 저장
+- src: 소스 파일 저장
+- /index.html : 루트 폴더의 index.html은 github page 호스팅용 파일
