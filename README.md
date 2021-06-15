@@ -87,12 +87,14 @@ _버전 2.0.0_
 
 ## 빌드 방법
 
-1. 다음 라인들을 주석처리한다
+1. 다음 항목들을 주석처리한다
    - index.html : `<script type="module" src="/src/index.js"></script>`
+   - index.html : `<link rel="stylesheet" href="/src/css/common.css" />`
+2. 다음 항목을 주석 해제한다.
    - /src/index.js: `import './css/common.css';`
-2. npm run build
-3. /dist/ 폴더 안에 번들링 결과물이 나온다
-4. 주석처리한 것들을 해제한다.
+3. npm run build
+4. /dist/ 폴더 안에 번들링 결과물이 나온다
+5. 주석처리를 원상복구한다.
 
 ( 추후 gulp를 이용하여 빌드 과정이 변경될 수 있음 )
 
