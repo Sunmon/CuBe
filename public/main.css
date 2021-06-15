@@ -1,0 +1,13 @@
+/*! 빌드 날짜: 2021. 6. 15. 오후 11:47:16 */
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+

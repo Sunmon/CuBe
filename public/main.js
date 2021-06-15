@@ -1,3 +1,4 @@
+/*! 빌드 날짜: 2021. 6. 15. 오후 11:47:16 */
 /*
  * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
  * This devtool is neither made for production nor for readable output files.
@@ -30,6 +31,16 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 
 /***/ }),
 
+/***/ "./src/css/common.css":
+/*!****************************!*\
+  !*** ./src/css/common.css ***!
+  \****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n// extracted by mini-css-extract-plugin\n\n\n//# sourceURL=webpack://cube/./src/css/common.css?");
+
+/***/ }),
+
 /***/ "./src/common/constants.js":
 /*!*********************************!*\
   !*** ./src/common/constants.js ***!
@@ -56,7 +67,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
   \**********************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _js_board_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./js/board.js */ \"./src/js/board.js\");\n\r\n\r\nconsole.log('hello world!');\r\nconst board = new _js_board_js__WEBPACK_IMPORTED_MODULE_0__.default();\r\n\n\n//# sourceURL=webpack://cube/./src/index.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _js_board_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./js/board.js */ \"./src/js/board.js\");\n/* harmony import */ var _css_common_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./css/common.css */ \"./src/css/common.css\");\n\r\n\r\n\r\nconsole.log('hello world!');\r\nconst board = new _js_board_js__WEBPACK_IMPORTED_MODULE_0__.default();\r\n\n\n//# sourceURL=webpack://cube/./src/index.js?");
 
 /***/ }),
 
