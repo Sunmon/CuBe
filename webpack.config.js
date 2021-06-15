@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
   mode: 'development',
@@ -15,8 +16,13 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.css$/, // .css 확장자로 끝나는 모든 파일
-        use: ['style-loader', 'css-loader'], // css-loader를 적용한다
+        test: /\.css$/,
+        use: [
+          process.env.NODE_ENV === 'production'
+            ? MiniCssExtractPlugin.loader // 프로덕션 환경
+            : 'style-loader', // 개발 환경
+          'css-loader',
+        ],
       },
       {
         test: /\.png$/, // .png 확장자로 마치는 모든 파일
@@ -45,5 +51,11 @@ module.exports = {
     }),
     new webpack.ProgressPlugin(),
     new CleanWebpackPlugin(),
+    new webpack.BannerPlugin({
+      banner: () => `빌드 날짜: ${new Date().toLocaleString()}`,
+    }),
+    ...(process.env.NODE_ENV === 'production'
+      ? [new MiniCssExtractPlugin({ filename: `[name].css` })]
+      : []),
   ],
 };
