@@ -48,7 +48,7 @@ export default class CustomScene {
   static createFloor() {
     const planeSize = 20;
     const repeats = planeSize / 2;
-    const texture = CustomMesh.createTexture('assets/checker.png');
+    const texture = CustomMesh.createTexture('/assets/checker.png');
     const mesh = CustomMesh.createPlane(planeSize, planeSize, WHITE);
     texture.wrapS = RepeatWrapping;
     texture.wrapT = RepeatWrapping;
