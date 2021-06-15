@@ -46,7 +46,7 @@ export default class CustomMesh {
 
   static createSticker(color) {
     const sticker = CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
-    const texture = CustomMesh.createTexture('assets/128_2px.png');
+    const texture = CustomMesh.createTexture('/assets/128_2px.png');
     sticker.material.map = texture;
     sticker.material.transparent = true;
     sticker.name = 'sticker';
