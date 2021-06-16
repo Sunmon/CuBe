@@ -25,11 +25,10 @@ module.exports = {
         ],
       },
       {
-        test: /\.png$/, // .png 확장자로 마치는 모든 파일
+        test: /\.(png|jpe?g|gif)$/i, // 사진 확장자로 마치는 모든 파일
         loader: 'url-loader', // 파일 로더를 적용한다
         options: {
-          publicPath: './dist/',
-          name: '[name].[ext]?[hash]',
+          name: 'assets/[name].[contenthash].[ext]',
           limit: 5000, // 5kb 미만만 url-loader로 처리( 크면 fileloader)
         },
       },
