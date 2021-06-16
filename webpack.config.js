@@ -57,4 +57,13 @@ module.exports = {
       ? [new MiniCssExtractPlugin({ filename: `[name].css` })]
       : []),
   ],
+  devServer: {
+    contentBase: path.join(__dirname, 'dist'),
+    publicPath: '/',
+    // host: 'cube.io' /* 아직 미정 */
+    stats: 'errors-only',
+    overlay: true,
+    historyApiFallback: false,
+    hot: true,
+  },
 };
