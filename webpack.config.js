@@ -3,9 +3,12 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+
+const mode = process.env.NODE_ENV || 'development';
 
 module.exports = {
-  mode: 'development',
+  mode,
   entry: {
     main: './src/index.js',
   },
@@ -65,5 +68,24 @@ module.exports = {
     overlay: true,
     historyApiFallback: false,
     hot: true,
+    port: 5000,
+  },
+  optimization: {
+    minimizer:
+      mode === 'production'
+        ? [
+            new TerserPlugin({
+              terserOptions: {
+                compress: {
+                  drop_console: true, // console.log 제거
+                },
+              },
+            }),
+          ]
+        : [],
+  },
+  externals: {
+    // three: 'three',
+    // tween: 'tween',
   },
 };
