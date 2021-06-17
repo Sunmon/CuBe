@@ -11,8 +11,9 @@ import {
   TextureLoader,
   LinearFilter,
   LinearMipmapLinearFilter,
-} from '../../lib/three.module.js';
+} from 'three';
 import { CUBIC_PER_ROW, CUBIC_SIZE, BLACK } from '../common/constants.js';
+import img from '../../assets/128_2px.png';
 
 // 카툰렌더링
 // https://threejs.org/examples/#webgl_materials_variations_toon
@@ -46,7 +47,8 @@ export default class CustomMesh {
 
   static createSticker(color) {
     const sticker = CustomMesh.createPlane(CUBIC_SIZE, CUBIC_SIZE, color);
-    const texture = CustomMesh.createTexture('/assets/128_2px.png');
+    // const texture = CustomMesh.createTexture('/assets/128_2px.png');
+    const texture = CustomMesh.createTexture(img);
     sticker.material.map = texture;
     sticker.material.transparent = true;
     sticker.name = 'sticker';

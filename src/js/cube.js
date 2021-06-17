@@ -1,7 +1,7 @@
-// import * as THREE from 'three'; // webpack으로 모듈 사용시
-import CustomMesh from './mesh.js';
+import * as THREE from 'three';
 import * as TWEEN from '../../lib/tween.esm.js';
-import * as THREE from '../../lib/three.module.js';
+import CustomMesh from './mesh.js';
+
 import {
   CUBIC_SIZE,
   DEFAULT_COLORS,

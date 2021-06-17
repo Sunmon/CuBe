@@ -1,4 +1,4 @@
-import { WebGLRenderer } from '../../lib/three.module.js';
+import { WebGLRenderer } from 'three';
 
 export default class CustomRenderer {
   constructor(canvas) {

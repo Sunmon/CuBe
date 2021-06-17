@@ -65,7 +65,7 @@ module.exports = {
     // new CopyPlugin({
     //   patterns: [
     //     {
-    //       from: './node_modules/three/build/three.js',
+    //       from: './node_modules/three/build/three.module.js',
     //       to: './three.js',
     //     },
     //   ],

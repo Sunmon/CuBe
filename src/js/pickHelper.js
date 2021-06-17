@@ -1,7 +1,7 @@
 /**
  * @ref https://threejsfundamentals.org/threejs/lessons/kr/threejs-picking.html
  */
-import { Raycaster } from '../../lib/three.module.js';
+import { Raycaster } from 'three';
 
 export default class PickHelper {
   constructor(scene, camera) {

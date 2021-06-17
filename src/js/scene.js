@@ -4,10 +4,11 @@ import {
   SpotLight,
   RepeatWrapping,
   NearestFilter,
-} from '../../lib/three.module.js';
+} from 'three';
+
 import { WHITE } from '../common/constants.js';
-import Utils from '../common/utils.js';
 import CustomMesh from './mesh.js';
+import checkImg from '../../assets/checker.png';
 
 export default class CustomScene {
   constructor() {
@@ -48,7 +49,8 @@ export default class CustomScene {
   static createFloor() {
     const planeSize = 20;
     const repeats = planeSize / 2;
-    const texture = CustomMesh.createTexture('/assets/checker.png');
+    // const texture = CustomMesh.createTexture('/assets/checker.png');
+    const texture = CustomMesh.createTexture(checkImg);
     const mesh = CustomMesh.createPlane(planeSize, planeSize, WHITE);
     texture.wrapS = RepeatWrapping;
     texture.wrapT = RepeatWrapping;

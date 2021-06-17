@@ -5,9 +5,9 @@ import CustomScene from './scene.js';
 import CustomRenderer from './renderer.js';
 import CustomMesh from './mesh.js';
 import PickHelper from './pickHelper.js';
+import EventManager from './eventManager.js';
 import { CANVAS } from '../common/constants.js';
 import Utils from '../common/utils.js';
-import EventManager from './eventManager.js';
 
 export default class Board {
   constructor() {
