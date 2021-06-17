@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const mode = process.env.NODE_ENV || 'development';
 
@@ -54,11 +55,21 @@ module.exports = {
     new webpack.ProgressPlugin(),
     new CleanWebpackPlugin(),
     new webpack.BannerPlugin({
-      banner: () => `빌드 날짜: ${new Date().toLocaleString()}`,
+      banner: () =>
+        `빌드 날짜: ${new Date().toLocaleString()} \n 제작자: sunmon`,
     }),
     ...(process.env.NODE_ENV === 'production'
       ? [new MiniCssExtractPlugin({ filename: `[name].css` })]
       : []),
+    // FIXME: three, tween externals로 옮길때 사용
+    // new CopyPlugin({
+    //   patterns: [
+    //     {
+    //       from: './node_modules/three/build/three.js',
+    //       to: './three.js',
+    //     },
+    //   ],
+    // }),
   ],
   devServer: {
     contentBase: path.join(__dirname, 'dist'),
@@ -85,6 +96,7 @@ module.exports = {
         : [],
   },
   externals: {
+    // FIXME: three, tween 외부로 빼기
     // three: 'three',
     // tween: 'tween',
   },
