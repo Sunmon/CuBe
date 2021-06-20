@@ -15,6 +15,8 @@
 
 **큐브 자유롭게 회전**
 
+<img width = "50%" src= "https://user-images.githubusercontent.com/26290571/122660741-85941d00-d1be-11eb-8c2e-e17e2f983766.gif" >
+
 _v.1.0.0_
 큐브를 회전할 수 있습니다.
 
